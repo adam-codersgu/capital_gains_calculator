@@ -12,6 +12,7 @@ The accuracy of the application's output cannot be guaranteed, and the developer
 ## Technical specifications
 
 Kotlin v1.6.21
+Java v17.0.2
 Maven framework build
 
 IntelliJ IDEA 2021.3.3 (Community Edition)
