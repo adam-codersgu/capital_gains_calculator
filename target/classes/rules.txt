@@ -1,0 +1,37 @@
+https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg51560
+
+The “same day” rule TCGA92/S105(1)
+All shares of the same class in the same company acquired by the same person on the same day and in the same capacity are treated as though they were acquired by a single transaction, TCGA92/S105 (1)(a).
+
+All shares of the same class in the same company disposed of by the same person on the same day and in the same capacity are also treated as though they were disposed of by a single transaction, TCGA92/S105 (1)(a).
+
+If there is an acquisition and a disposal on the same day the disposal is identified first against the acquisition on the same day, TCGA92/S105 (1)(b).
+
+If the number of shares disposed of exceeds the number acquired on the same day the excess shares will be identified in the normal way.
+
+If the number of shares acquired exceeds the number sold on the same day the surplus is added to the Section 104 holding, unless they are identified with disposals under the ‘bed and breakfast’ rule, see below.
+
+
+The “bed and breakfast” rule TCGA92/S106A(5) and (5A)
+
+Disposals must be identified with acquisitions of shares
+
+of the same class, see CG50203
+acquired by the same person in the same capacity, and
+acquired within the 30 days after the disposal.
+This rule has priority over all other identification rules except the `same day’ rule in TCGA92/S105(1), see above.
+
+The three requirements above (same class, same capacity, later acquisition within 30 days) must be met for the rule to operate.
+
+https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg51555
+
+Section 106A provides that, for matching acquisitions and disposals of shares of the same class in the same company held in the same capacity
+
+the identification rules set out below apply, even if the particular shares were identified in some other way when they were disposed of, or when they were transferred or delivered to the acquirer
+disposals must be identified in the following order:
+Against acquisitions on the same day, TCGA92/S105(1)(b), see CG50822. This is known as the “same day rule”.
+Against acquisitions within the 30 days following the disposal, provided the person making the disposal was resident in the United Kingdom at the time of the acquisition, TCGA92/S106A(5) and (5A), see CG51560. This is known as the “bed and breakfast” rule.
+Against shares in a Section 104 holding, but without identifying any particular shares in that holding, TCGA92/S104.
+Finally against acquisitions following the disposal (and not already identified under stage 2 above), taking the earliest acquisition first, TCGA92/S105(2).
+
+Note that in relation to disposals after 5 April 2008 TCGA92/S105(3) and TCGA92/S106A(5ZA) make it clear that shares identified in accordance with points 1 & 2 above do not enter the S104 holding.
