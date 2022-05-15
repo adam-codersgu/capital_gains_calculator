@@ -42,3 +42,8 @@ Kotlin: 213-1.6.21-release-334-IJ6777.52
 **N.B. The column header row is included in the below screenshot for illustrative purposes. You should remove the column header row from your spreadsheet.**
 
 ![Example Stock Transactions](images/example_stock_transactions.png "Example Stock Transactions")
+
+7. Run the application in an IDE such as IntelliJ. Note you may need to install the application using Maven to acquire the requisite dependencies. You may also need to specify that the application will run using Java 17 and Kotlin 1.6.21 (full technical specifications are provided above).
+8. A file chooser dialog should open. Navigate to, and select, the spreadsheet file containing the buy and sell transactions for your chosen stock. **N.B. The spreadsheet must have a file extension of .xls or .xlsx**
+
+![Select Spreadsheet](images/select_spreadsheet.png "Select Spreadsheet")
