@@ -48,3 +48,12 @@ Kotlin: 213-1.6.21-release-334-IJ6777.52
 8. A file chooser dialog should open. Navigate to, and select, the spreadsheet file containing the buy and sell transactions for your chosen stock. **N.B. The spreadsheet must have a file extension of .xls or .xlsx**
 
 ![Select Spreadsheet](images/select_spreadsheet.png "Select Spreadsheet")
+
+9. The application will process the spreadsheet and match the transactions according to HMRC's guidelines. According to HMRC, stock disposals should be matched in the following order of priority:
+   1. Same day transactions (Shares in the same company that are sold and purchased on the same day should be matched)
+   2. Bed and breakfast transactions (Disposed shares should be matched with shares that are purchased in the following 30 days)
+   3. Section 104 transactions (Disposed shares should be matched with existing shares in the person's holdings)
+   4. If none of the above rules apply, then disposals should be matched with shares purchased following the disposal. For example, this step could be applicable to the closure of a short position.
+10. Refer to the console output to see how the transactions are matched.
+
+![Application Console Output](images/application_console_output.png "Application Console Output")
