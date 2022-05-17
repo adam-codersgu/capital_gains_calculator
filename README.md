@@ -1,5 +1,5 @@
-# HMRC Capital Gains Transaction Calculator For DEGIRO
-An application to help report stock transactions for an HMRC Capital Gains tax report.
+# Capital Gains Transaction Calculator
+An application to help analyse stock transactions for an HMRC Capital Gains tax report.
 
 This application is designed for stock transactions completed using the broker DEGIRO.
 
@@ -57,3 +57,6 @@ Kotlin: 213-1.6.21-release-334-IJ6777.52
 10. Refer to the console output to see how the transactions are matched.
 
 ![Application Console Output](images/application_console_output.png "Application Console Output")
+
+11. The console output also includes other figures that should be useful for the capital gains report including the number of disposals, total gains, total losses and overall profit (or loss).
+12. Repeat steps 4-11 for each remaining stock.
