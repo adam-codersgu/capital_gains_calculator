@@ -1,10 +1,7 @@
 
 import model.SpreadsheetRow
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.junit.jupiter.MockitoExtension
@@ -25,6 +22,7 @@ class MainTest {
 
     private lateinit var fileInputStream: FileInputStream
     private lateinit var testSpreadsheet: Path
+    private lateinit var workbook: XSSFWorkbook
 
     companion object {
         val ROW0_VALUE = SpreadsheetRow(
@@ -79,6 +77,7 @@ class MainTest {
         }
 
         fileInputStream = FileInputStream(testSpreadsheet.toFile())
+        workbook = XSSFWorkbook(fileInputStream)
     }
 
     /**
@@ -93,12 +92,15 @@ class MainTest {
 
     /**
      * Establish that the test data spreadsheet has been successfully created by the setup() method
+     * Assess that an input stream to the spreadsheet is available
      */
     @Test
-    fun testExampleSpreadsheetExists() {
+    fun testExampleSpreadsheetExistsAndIsAvailable() {
         assertTrue {
             this::testSpreadsheet.isInitialized
             Files.exists(testSpreadsheet)
+            this::fileInputStream.isInitialized
+            this::workbook.isInitialized
         }
     }
 
@@ -107,7 +109,6 @@ class MainTest {
      */
     @Test
     fun testExampleSpreadsheetContainsTestData() {
-        val workbook = XSSFWorkbook(fileInputStream)
         val sheet = workbook.getSheetAt(0)
 
         val row1 = sheet.getRow(0)
@@ -133,6 +134,9 @@ class MainTest {
      *  Expected result: The file should be accepted and the test should pass.
      */
 
+    // Disabled because the test is validated as working
+    // It is not necessary to re-run the test each time the test class is initialised
+    @Disabled
     @Test
     fun openFileChooserDialogWindow() {
         val filter = FileNameExtensionFilter("Excel file (*.xls;*.xlsx)", "xls", "xlsx")
@@ -151,6 +155,33 @@ class MainTest {
                 file.path.endsWith(".xls") || file.path.endsWith(".xlsx")
             }
         }
+    }
+
+    /**
+     * Test that the processSpreadsheet method can effectively determine and report
+     * an asset's name and ISIN
+     *
+     * Acceptance criteria:
+     *  The asset name and ISIN should be accurate
+     *  The asset name and ISIN should be reported in the format provided below:
+     *      --- {Asset Name} --- ISIN: {ISIN} ---
+     *  A line break should be included after the asset name and ISIN
+     *
+     */
+
+    @Test
+    fun getAndReportAssetNameAndISINFromSpreadsheet() {
+        val expectedOutput = "--- " + ROW0_VALUE.product + " --- ISIN: " + ROW0_VALUE.ISIN + " ---\n"
+
+        val sheet = workbook.getSheetAt(0)
+
+        val row1 = sheet.getRow(0)
+
+        val assetName = row1.getCell(3).stringCellValue
+        val assetISIN = row1.getCell(4).stringCellValue
+        val output = "--- $assetName --- ISIN: $assetISIN ---\n"
+
+        assertEquals(expectedOutput, output)
     }
 
     /* @Test
