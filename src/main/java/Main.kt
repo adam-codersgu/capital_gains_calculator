@@ -87,40 +87,31 @@ fun processSpreadsheet(fileLocation: String) {
             else -> "Unknown direction"
         }
 
-        val quantityField = when (transactionType) {
-            "Sell" -> description.substring(5)
-            "Buy" -> description.substring(4)
-            else -> null
-        }
-
-        if (quantityField == null) {
-            println("Error determining the quantity - Check you have removed the transaction fees")
+        if (transactionType == "Unknown direction") {
+            println("An error occurred while determining the type of transaction. \n" +
+                    "Please check you have only included Buy and Sell transactions. \n"+
+                    "Remove all other data including dividends, transaction fees, FX Credit/Debit etc.")
             return
         }
 
-        var quantity = ""
-        for (element in quantityField) {
-            // Ignore commas and stop reading the quantity when whitespace is reached
-            when (element.toString()) {
-                " " -> break
-                "," -> continue
-                else -> quantity += element.toString()
+        fun determineQuantity(quantityField: String): String {
+            var quantity = ""
+            for (element in quantityField) {
+                // Ignore commas and stop reading the quantity when whitespace is reached
+                when (element.toString()) {
+                    " " -> break
+                    "," -> continue
+                    else -> quantity += element.toString()
+                }
             }
-        }
-
-        val price = when (transactionType) {
-            "Sell" -> row.getCell(8).numericCellValue
-            "Buy" -> -row.getCell(8).numericCellValue
-            else -> null
-        }
-
-        if (price == null) {
-            println("Error determining the price")
-            return
+            return quantity
         }
 
         when (transactionType) {
             "Sell" -> {
+                val quantity = determineQuantity(description.substring(5))
+                val price = row.getCell(8).numericCellValue
+
                 val index = sellTransactions.indexOfFirst {
                     it.date == date
                 }
@@ -135,6 +126,9 @@ fun processSpreadsheet(fileLocation: String) {
                 }
             }
             "Buy" -> {
+                val quantity = determineQuantity(description.substring(4))
+                val price = -row.getCell(8).numericCellValue
+
                 val index = buyTransactions.indexOfFirst {
                     it.date == date
                 }
@@ -148,7 +142,6 @@ fun processSpreadsheet(fileLocation: String) {
                     buyTransactions[index].price += price
                 }
             }
-            else -> println("Error: Invalid transaction direction. Must be either Buy or Sell.")
         }
     }
 
