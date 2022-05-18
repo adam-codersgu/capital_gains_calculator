@@ -18,7 +18,6 @@ import javax.swing.JFileChooser
 import javax.swing.JFrame
 import javax.swing.filechooser.FileNameExtensionFilter
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @ExtendWith(MockitoExtension::class)
@@ -35,7 +34,7 @@ class MainTest {
      *  ROW1 -> Sell 10 shares company A same day as ROW0
      */
     companion object {
-        val ROW0_VALUE = SpreadsheetRow(
+        private val ROW0_VALUE = SpreadsheetRow(
             "16-05-2022",
             "09:22",
             "16-05-2022",
@@ -49,7 +48,7 @@ class MainTest {
             -199.99,
             "abcdefg-123456-hijk7890"
         )
-        val ROW1_VALUE = SpreadsheetRow(
+        private val ROW1_VALUE = SpreadsheetRow(
             "16-05-2022",
             "09:55",
             "16-05-2022",
@@ -141,8 +140,8 @@ class MainTest {
         val assetName = row1.getCell(3).stringCellValue
         val assetISIN = row1.getCell(4).stringCellValue
 
-        assertEquals(ROW0_VALUE.product, assetName)
-        assertEquals(ROW0_VALUE.ISIN, assetISIN)
+        assertEquals(ROWS[0].product, assetName)
+        assertEquals(ROWS[0].ISIN, assetISIN)
     }
 
     /**
@@ -229,76 +228,62 @@ class MainTest {
         assertEquals(LocalDate.parse(testDataRow.date, formatter), date)
 
         // 4. Determine the correct transaction type
+        val testDataDescription = testDataRow.description
         val description = row.getCell(5).stringCellValue
+
+        val testDataTransactionType = when (testDataDescription.take(4)) {
+            "Sell" -> "Sell"
+            "Buy " -> "Buy"
+            else -> "Unknown direction"
+        }
         val transactionType = when (description.take(4)) {
             "Sell" -> "Sell"
             "Buy " -> "Buy"
             else -> "Unknown direction"
         }
-        assertTrue {
-            when (testDataRow.description.take(4)) {
-                "Sell" -> transactionType == "Sell"
-                "Buy " -> transactionType == "Buy"
-                else -> false
-            }
-        }
+        assertEquals(testDataTransactionType, transactionType)
 
-        // 5. Should effectively extract the quantity of stock traded
-        val quantityField = when (transactionType) {
-            "Sell" -> description.substring(5)
-            "Buy" -> description.substring(4)
-            else -> null
-        }
-        assertNotNull(quantityField)
-
-        var quantity = ""
-        for (element in quantityField) {
-            // Ignore commas and stop reading the quantity when whitespace is reached
-            when (element.toString()) {
-                " " -> break
-                "," -> continue
-                else -> quantity += element.toString()
-            }
-        }
-        assertTrue {
-            fun getTestDataQuantity(testDataQuantityExtract: String): String {
-                var testDataQuantity = ""
-                for (element in testDataQuantityExtract) {
-                    when (element.toString()) {
-                        " " -> break
-                        "," -> continue
-                        else -> testDataQuantity += element.toString()
-                    }
+        // 5. Extract the quantity of stock traded
+        // 6. Extract the price of the stock traded
+        fun determineQuantity(quantityField: String): String {
+            var quantity = ""
+            for (element in quantityField) {
+                // Ignore commas and stop reading the quantity when whitespace is reached
+                when (element.toString()) {
+                    " " -> break
+                    "," -> continue
+                    else -> quantity += element.toString()
                 }
-                return testDataQuantity
             }
-
-            val testDataDescription = testDataRow.description
-            when (testDataDescription.take(4)) {
-                "Sell" -> {
-                    getTestDataQuantity(testDataDescription.substring(5)) == quantity
-                }
-                "Buy " -> {
-                    getTestDataQuantity(testDataDescription.substring(4)) == quantity
-                }
-                else -> false
-            }
+            return quantity
         }
 
-        // 6. Should effectively extract the price of the stock traded
-        val price = when (transactionType) {
-            "Sell" -> row.getCell(8).numericCellValue
-            "Buy" -> -row.getCell(8).numericCellValue
-            else -> null
-        }
-        assertNotNull(price)
-        assertTrue {
-            when (testDataRow.description.take(4)) {
-                "Sell" -> price == testDataRow.changeValue
-                "Buy " -> price == -testDataRow.changeValue
-                else -> false
+        var testDataQuantity = ""; var testDataPrice = testDataRow.changeValue
+        when (testDataTransactionType) {
+            "Sell" -> {
+                testDataQuantity = determineQuantity(testDataDescription.substring(5))
+                testDataPrice = testDataRow.changeValue
+            }
+            "Buy" -> {
+                testDataQuantity = determineQuantity(testDataDescription.substring(4))
+                testDataPrice = -testDataRow.changeValue
             }
         }
+
+        var quantity = ""; var price = 0.00
+        when (transactionType) {
+            "Sell" -> {
+                quantity = determineQuantity(description.substring(5))
+                price = row.getCell(8).numericCellValue
+            }
+            "Buy" -> {
+                quantity = determineQuantity(description.substring(4))
+                price = -row.getCell(8).numericCellValue
+            }
+        }
+
+        assertEquals(testDataQuantity, quantity)
+        assertEquals(testDataPrice, price)
     }
 
 
