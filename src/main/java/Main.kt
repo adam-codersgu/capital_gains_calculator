@@ -56,7 +56,8 @@ fun openFileChooserDialogWindow() {
     val result = fileChooser.showOpenDialog(frame)
     if (result == JFileChooser.APPROVE_OPTION) {
         val file = fileChooser.selectedFile
-        processSpreadsheet(file.absolutePath)
+        // processSpreadsheet(file.absolutePath)
+        ProcessSpreadsheet(file.absolutePath)
     }
     exitProcess(0)
 }
@@ -65,11 +66,6 @@ fun processSpreadsheet(fileLocation: String) {
     val file = FileInputStream(File(fileLocation))
     val workbook = XSSFWorkbook(file)
     val sheet = workbook.getSheetAt(0)
-
-    val row1 = sheet.getRow(0)
-    val assetName = row1.getCell(3).stringCellValue
-    val assetISIN = row1.getCell(4).stringCellValue
-    println("--- $assetName --- ISIN: $assetISIN ---\n")
 
     val buyTransactions = mutableListOf<Transaction>()
     val sellTransactions = mutableListOf<Transaction>()

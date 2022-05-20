@@ -11,7 +11,6 @@ If the number of shares disposed of exceeds the number acquired on the same day 
 
 If the number of shares acquired exceeds the number sold on the same day the surplus is added to the Section 104 holding, unless they are identified with disposals under the ‘bed and breakfast’ rule, see below.
 
-
 The “bed and breakfast” rule TCGA92/S106A(5) and (5A)
 
 Disposals must be identified with acquisitions of shares
