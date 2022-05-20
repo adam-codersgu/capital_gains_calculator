@@ -1,4 +1,3 @@
-
 import exceptions.UnknownTransactionTypeException
 import org.apache.poi.xssf.usermodel.XSSFRow
 import org.apache.poi.xssf.usermodel.XSSFSheet
@@ -21,11 +20,16 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val sheet = workbook.getSheetAt(0)
         outputAssetNameAndISIN(sheet.getRow(0))
         addTransactionsToLists(sheet)
-
-        println("Number of disposals: "+ sellTransactions.size)
+        printNumberOfDisposals()
         processSameDayTransactions(sellTransactions.sortedBy { it.date }.toMutableList(), buyTransactions.sortedBy { it.date }.toMutableList())
     }
 
+    /**
+     * Prints the asset's name and ISIN to the console. Used to indicate which asset
+     * the report is about.
+     *
+     * @param  row  an XSSFRow that contains columns for the asset's name and ISIN
+     */
     private fun outputAssetNameAndISIN(row: XSSFRow) {
         val assetName = row.getCell(3).stringCellValue
         val assetISIN = row.getCell(4).stringCellValue
@@ -75,6 +79,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
             }
         }
     }
+
+    private fun printNumberOfDisposals() = println("Number of disposals: " + sellTransactions.size)
 
     private fun getTransactionType(transactionDescription: String): String {
         return when (transactionDescription.take(4)) {
