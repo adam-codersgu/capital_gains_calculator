@@ -276,6 +276,28 @@ class ProcessSpreadsheetTest {
     }
 
     /**
+     * Report the number of disposals. The number of disposals equals the size of the
+     * sellTransactions list.
+     *
+     * Acceptance criteria:
+     *  The number of disposals should be reported in the following format:
+     *      "Number of disposals: {number}"
+     *
+     * @Param listSize - The size of the sellTransactions list (the number of disposals)
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [0, 1, 5, 10, 125])
+    fun printNumberOfDisposalsTest(listSize: Int) {
+        val expectedOutput = "Number of disposals: $listSize"
+
+        // Create a mutable list of the specified size
+        val sellTransactions = arrayOfNulls<Transaction>(listSize).toMutableList()
+        val output = "Number of disposals: " + sellTransactions.size
+
+        assertEquals(expectedOutput, output)
+    }
+
+    /**
      * Assess that the Transaction type can be accurately extracted from the test data spreadsheet for
      * buy and sell transactions.
      *
@@ -348,20 +370,4 @@ class ProcessSpreadsheetTest {
             else -> assertTrue(false)
         }
     }
-
-    /* @Test
-    fun testCreateAndReturnSheetFromWorkbookReturnsSheet() {
-        val mockWorkbook: XSSFWorkbook = mock(XSSFWorkbook::class.java)
-        val mockSheet = mock(XSSFSheet::class.java)
-        val mockRow = mock(XSSFRow::class.java)
-        val mockCell = mock(XSSFCell::class.java)
-        `when`(mockWorkbook.createSheet(anyString())).thenReturn(mockSheet)
-        `when`(mockSheet.createRow(anyInt())).thenReturn(mockRow)
-        `when`(mockRow.createCell(anyInt())).thenReturn(mockCell)
-        val sheet = CreateMockSpreadsheet().createMockSheet(mockWorkbook)
-        println(sheet.physicalNumberOfRows)
-        assertTrue {
-            sheet.getRow(0).count() == 5
-        }
-    } */
 }
