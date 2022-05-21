@@ -1,4 +1,5 @@
 import exceptions.UnknownTransactionTypeException
+import model.Transaction
 import org.apache.poi.xssf.usermodel.XSSFRow
 import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -21,7 +22,9 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         outputAssetNameAndISIN(sheet.getRow(0))
         addTransactionsToLists(sheet)
         printNumberOfDisposals()
-        processSameDayTransactions(sellTransactions.sortedBy { it.date }.toMutableList(), buyTransactions.sortedBy { it.date }.toMutableList())
+        // TODO: Uncomment the below once implemented
+        // ProcessTransactions(buyTransactions, sellTransactions)
+        process(buyTransactions.sortedBy { it.date }.toMutableList(), sellTransactions.sortedBy { it.date }.toMutableList())
     }
 
     /**
@@ -36,6 +39,12 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         println("--- $assetName --- ISIN: $assetISIN ---\n")
     }
 
+    /**
+     * Extracts each transaction from the spreadsheet and assigns the
+     * transactions to lists for purchases and disposals.
+     *
+     * @param  sheet an XSSFSheet that contains rows of transactions
+     */
     private fun addTransactionsToLists(sheet: XSSFSheet) {
         val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
 
@@ -58,7 +67,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
                 it.date == transactionDate
             }} else buyTransactions.indexOfFirst { it.date == transactionDate }
 
-            // If the transaction is unique (index equals -1) then build a new Transaction object
+            // If the transaction is unique (index equals -1) then build a new model.Transaction object
             if (index == -1) {
                 val transaction = Transaction(mutableListOf(transactionID), transactionDate, transactionType, transactionQuantity, transactionPrice)
                 // Add the new transaction to the relevant list

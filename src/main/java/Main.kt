@@ -1,11 +1,9 @@
 
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import model.Section104
+import model.Transaction
 import java.io.File
-import java.io.FileInputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.swing.JFileChooser
 import javax.swing.JFrame
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -43,6 +41,10 @@ fun main() {
     openFileChooserDialogWindow()
 }
 
+/**
+ * Opens a file chooser dialog window so the user can select an
+ * Excel spreadsheet containing transaction data.
+ */
 fun openFileChooserDialogWindow() {
     val filter = FileNameExtensionFilter("Excel file (*.xls;*.xlsx)", "xls", "xlsx")
     val fileChooser = JFileChooser().apply {
@@ -56,96 +58,12 @@ fun openFileChooserDialogWindow() {
     val result = fileChooser.showOpenDialog(frame)
     if (result == JFileChooser.APPROVE_OPTION) {
         val file = fileChooser.selectedFile
-        // processSpreadsheet(file.absolutePath)
         ProcessSpreadsheet(file.absolutePath)
     }
     exitProcess(0)
 }
 
-fun processSpreadsheet(fileLocation: String) {
-    val file = FileInputStream(File(fileLocation))
-    val workbook = XSSFWorkbook(file)
-    val sheet = workbook.getSheetAt(0)
-
-    val buyTransactions = mutableListOf<Transaction>()
-    val sellTransactions = mutableListOf<Transaction>()
-
-    for (row in sheet) {
-        val transactionID = row.getCell(11).stringCellValue
-
-        val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        val date = LocalDate.parse(row.getCell(0).stringCellValue, formatter)
-
-        val description = row.getCell(5).stringCellValue
-        val transactionType = when (description.take(4)) {
-            "Sell" -> "Sell"
-            "Buy " -> "Buy"
-            else -> "Unknown direction"
-        }
-
-        if (transactionType == "Unknown direction") {
-            println("An error occurred while determining the type of transaction. \n" +
-                    "Please check you have only included Buy and Sell transactions. \n"+
-                    "Remove all other data including dividends, transaction fees, FX Credit/Debit etc.")
-            return
-        }
-
-        fun determineQuantity(quantityField: String): String {
-            var quantity = ""
-            for (element in quantityField) {
-                // Ignore commas and stop reading the quantity when whitespace is reached
-                when (element.toString()) {
-                    " " -> break
-                    "," -> continue
-                    else -> quantity += element.toString()
-                }
-            }
-            return quantity
-        }
-
-        when (transactionType) {
-            "Sell" -> {
-                val quantity = determineQuantity(description.substring(5))
-                val price = row.getCell(8).numericCellValue
-
-                val index = sellTransactions.indexOfFirst {
-                    it.date == date
-                }
-                if (index == -1) {
-                    val transaction =
-                        Transaction(mutableListOf(transactionID), date, transactionType, quantity.toInt(), price)
-                    sellTransactions.add(transaction)
-                } else {
-                    sellTransactions[index].transactionIDs.add(transactionID)
-                    sellTransactions[index].quantity += quantity.toInt()
-                    sellTransactions[index].price += price
-                }
-            }
-            "Buy" -> {
-                val quantity = determineQuantity(description.substring(4))
-                val price = -row.getCell(8).numericCellValue
-
-                val index = buyTransactions.indexOfFirst {
-                    it.date == date
-                }
-                if (index == -1) {
-                    val transaction =
-                        Transaction(mutableListOf(transactionID), date, transactionType, quantity.toInt(), price)
-                    buyTransactions.add(transaction)
-                } else {
-                    buyTransactions[index].transactionIDs.add(transactionID)
-                    buyTransactions[index].quantity += quantity.toInt()
-                    buyTransactions[index].price += price
-                }
-            }
-        }
-    }
-
-    println("Number of disposals: "+ sellTransactions.size)
-    processSameDayTransactions(sellTransactions.sortedBy { it.date }.toMutableList(), buyTransactions.sortedBy { it.date }.toMutableList())
-}
-
-fun processSameDayTransactions(sellTransactions: MutableList<Transaction>, buyTransactions: MutableList<Transaction>) {
+fun process(sellTransactions: MutableList<Transaction>, buyTransactions: MutableList<Transaction>) {
     val sellTransactionsToRemove = mutableListOf<Int>()
     for ((i, t) in sellTransactions.withIndex()) {
         // Process same day transactions
