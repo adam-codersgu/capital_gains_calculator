@@ -2,6 +2,7 @@
 import exceptions.UnknownTransactionTypeException
 import mock.TestSpreadsheetRowData
 import mock.templates.SpreadsheetRow
+import model.Transaction
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -36,7 +37,6 @@ class ProcessSpreadsheetTest {
      *
      * @Param tempDir - A temporary directory created by JUnit that will store the Excel spreadsheet
      */
-
     @BeforeAll
     private fun setup(@TempDir tempDir: Path) {
         val testSpreadsheet = tempDir.resolve("test_stock_transactions.xlsx")
@@ -122,8 +122,8 @@ class ProcessSpreadsheetTest {
      * A mock for the first half of the addTransactionsToLists() method
      * Assess that the following data can be accurately extracted from the test data spreadsheet for
      * buy and sell transactions:
-     *  - Transaction date
-     *  - Transaction ID
+     *  - model.Transaction date
+     *  - model.Transaction ID
      *  - Total price of stock traded
      *
      * @Param rowNumber - The row number from the test data Excel spreadsheet that will be tested,
@@ -182,7 +182,7 @@ class ProcessSpreadsheetTest {
             it.date == transactionDate
         }} else buyTransactions.indexOfFirst { it.date == transactionDate }
 
-        // If the transaction is unique (index equals -1) then build a new Transaction object
+        // If the transaction is unique (index equals -1) then build a new model.Transaction object
         if (index == -1) {
             val transaction = Transaction(mutableListOf(transactionID), transactionDate, transactionType, transactionQuantity, transactionPrice)
             // Add the new transaction to the relevant list
@@ -228,7 +228,7 @@ class ProcessSpreadsheetTest {
         val transactionDate = now()
         val transactionQuantity = 10
         val transactionPrice = 1.11
-        // Need to add copies of the Transaction objects to the transaction lists
+        // Need to add copies of the model.Transaction objects to the transaction lists
         // Otherwise subsequent modifications alter the value of raw object and disrupt the JUnit assertions
         val buyTransactions = mutableListOf(existingBuyTransaction.copy())
         val sellTransactions = mutableListOf(existingSellTransaction.copy())
@@ -237,7 +237,7 @@ class ProcessSpreadsheetTest {
             it.date == transactionDate
         }} else buyTransactions.indexOfFirst { it.date == transactionDate }
 
-        // If the transaction is unique (index equals -1) then build a new Transaction object
+        // If the transaction is unique (index equals -1) then build a new model.Transaction object
         if (index == -1) assertTrue(false)
         // Else incorporate the transaction details with the matching transaction
         else {
@@ -298,7 +298,7 @@ class ProcessSpreadsheetTest {
     }
 
     /**
-     * Assess that the Transaction type can be accurately extracted from the test data spreadsheet for
+     * Assess that the model.Transaction type can be accurately extracted from the test data spreadsheet for
      * buy and sell transactions.
      *
      * @Param rowNumber - The row number from the test data Excel spreadsheet that will be tested,
@@ -337,7 +337,7 @@ class ProcessSpreadsheetTest {
     }
 
     /**
-     * Assess that the Transaction quantity can be accurately extracted from the test data spreadsheet for
+     * Assess that the model.Transaction quantity can be accurately extracted from the test data spreadsheet for
      * buy and sell transactions.
      *
      * Acceptance criteria:

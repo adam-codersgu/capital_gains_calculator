@@ -8,7 +8,7 @@ class TestSpreadsheetRowData {
      * Companion object where example test data is defined:
      *  ROW0 -> Buy 10 shares company A
      *  ROW1 -> Sell 10 shares company A same day as ROW0
-     *  ROW2 -> INVALID RECORD (Transaction fee - Not a buy or sell transaction)
+     *  ROW2 -> INVALID RECORD (model.Transaction fee - Not a buy or sell transaction)
      */
     companion object {
         private val ROW0 = SpreadsheetRow(
@@ -45,7 +45,7 @@ class TestSpreadsheetRowData {
             "16-05-2022",
             "Company A",
             "AB123456789",
-            "Transaction and/or third party fees",
+            "model.Transaction and/or third party fees",
             null,
             "GBP",
             -0.42,
