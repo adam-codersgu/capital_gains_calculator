@@ -105,15 +105,15 @@ class ProcessSameDayTransactionsTest {
      * Calculate the profit or loss incurred from the sale of an asset due to the same day disposal
      * rule.
      *
-     * @Param index - The index of the buy and sell transactions in the buyTransactions
+     * @Param rowIndex - The index of the buy and sell transactions in the buyTransactions
      * and sellTransactions lists that should be processed.
      */
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2])
-    fun calculateProfitLossTest(index: Int) {
+    fun calculateProfitLossTest(rowIndex: Int) {
         val outstandingBuyTransactions = buyTransactions
-        val buyTransaction = buyTransactions[index].copy()
-        val sellTransaction = sellTransactions[index].copy()
+        val buyTransaction = buyTransactions[rowIndex].copy()
+        val sellTransaction = sellTransactions[rowIndex].copy()
 
         // The scenarios configured in the companion object should ensure this test always passes
         assertEquals(buyTransaction.date, sellTransaction.date)
@@ -148,6 +148,7 @@ class ProcessSameDayTransactionsTest {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
                 val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
+                val index = outstandingBuyTransactions.indexOf(buyTransaction)
                 outstandingBuyTransactions[index].quantity -= sellTransaction.quantity
                 outstandingBuyTransactions[index].price -= valueOfPurchasedShares
                 assertEquals(buyTransaction.quantity - sellTransaction.quantity,  outstandingBuyTransactions[index].quantity)
