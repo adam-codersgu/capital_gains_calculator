@@ -6,6 +6,8 @@ class ProcessSameDayTransactions {
 
     private val outstandingBuyTransactions = mutableListOf<Transaction>()
     private val outstandingSellTransactions = mutableListOf<Transaction>()
+    private var totalProfit = 0.00
+    private var totalLoss = 0.00
 
     /**
      * Match all same day asset purchases and disposals.
@@ -20,37 +22,38 @@ class ProcessSameDayTransactions {
         for (sellTransaction in sellTransactions) {
             val buyTransaction = outstandingBuyTransactions.find { it.date == sellTransaction.date }
             // A buy transaction occurred on the same day as the sell transaction
-            if (buyTransaction != null) matchSameDayTransaction(buyTransaction, sellTransaction)
+            if (buyTransaction != null) reportSameDayTransaction(buyTransaction, sellTransaction)
             // No buy transaction found, hence not a same day disposal
             else outstandingSellTransactions.add(sellTransaction)
         }
     }
 
-    private fun matchSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
+    /**
+     * Print a summary of the same day disposal report to the console.
+     *
+     * @param buyTransaction The Transaction object associated with the purchases for a given day
+     * @param sellTransaction The Transaction object associated with the sales for a given day
+     */
+    private fun reportSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
+        val profitOrLossMessage: String
+        if (profitOrLoss >= 0) {
+            profitOrLossMessage = "Profit = £$profitOrLoss."
+            totalProfit += profitOrLoss
+        } else {
+            profitOrLossMessage = "Loss = £$profitOrLoss."
+            totalLoss += profitOrLoss
+        }
 
-        // TODO: Implement
-
-
-        /* val sellAvgPrice = sellTransaction.price / sellTransaction.quantity
-        val buyAvgPrice = buyTransaction.price / buyTransaction.quantity
-        var message = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
+        val message = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
                 ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
-                " shares were bought for an average price of $buyAvgPrice GBP and " +
-                sellTransaction.quantity + " shares were sold for an average price of $sellAvgPrice GBP. "
-        var pl: String?
-
-        pl.let {
-            if (pl.toDouble() >= 0) {
-                message += "Profit = £$pl."
-                profit += pl.toDouble()
-            } else {
-                message += "Loss = £$pl."
-                loss += pl.toDouble()
-            }
-        }
-        println(message) */
+                " shares were bought for an average price of $averageBuyPrice GBP and " +
+                sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +
+                "GBP. $profitOrLossMessage"
+        println(message)
     }
 
     /**
@@ -105,58 +108,7 @@ class ProcessSameDayTransactions {
      *
      */
     /* fun processSameDayTransactions2(sellTransactions: MutableList<Transaction>, buyTransactions: MutableList<Transaction>) {
-        val sellTransactionsToRemove = mutableListOf<Int>()
-        for ((i, t) in sellTransactions.withIndex()) {
-            val index = buyTransactions.indexOfFirst {
-                it.date == t.date
-            }
-            if (index != -1) {
-                val buyTransaction = buyTransactions[index]
-                val sellAvgPrice = t.price / t.quantity
-                val buyAvgPrice = buyTransaction.price / buyTransaction.quantity
-                var message = "SAME DAY Sell transaction(s) (IDs " + t.transactionIDs + ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
-                        ") on " + buyTransaction.date + ". " + buyTransaction.quantity + " shares were bought for an average price of $buyAvgPrice GBP and " + t.quantity +
-                        " shares were sold for an average price of $sellAvgPrice GBP. "
-                var pl: String?
-                when {
-                    t.quantity == buyTransaction.quantity -> {
-                        pl = BigDecimal(t.price - buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toString()
-                        buyTransactions.removeAt(index)
-                        sellTransactionsToRemove.add(0, i)
-                    }
-                    t.quantity > buyTransaction.quantity -> {
-                        // More sold than bought, must process remainder as 30 day or section 104
-                        val percentage = buyTransaction.quantity.toDouble() / t.quantity.toDouble()
-                        val sameDaySellPrice = t.price * percentage
-                        sellTransactions[i].quantity -= buyTransaction.quantity
-                        sellTransactions[i].price -= sameDaySellPrice
-                        pl = BigDecimal(sameDaySellPrice - buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toString()
-                        buyTransactions.removeAt(index)
-                    }
-                    // t.quantity < buyTransaction.quantity
-                    else -> {
-                        // More bought than sold
-                        val percentage = t.quantity.toDouble() / buyTransaction.quantity.toDouble()
-                        val buyingCost = buyTransaction.price * percentage
-                        buyTransactions[index].quantity -= t.quantity
-                        buyTransactions[index].price -= buyingCost
-                        pl = BigDecimal(t.price - buyingCost).setScale(2, RoundingMode.HALF_EVEN).toString()
-                        sellTransactionsToRemove.add(0, i)
-                    }
-                }
-                pl.let {
-                    if (pl.toDouble() >= 0) {
-                        message += "Profit = £$pl."
-                        profit += pl.toDouble()
-                    } else {
-                        message += "Loss = £$pl."
-                        loss += pl.toDouble()
-                    }
-                }
-                println(message)
-            }
-        }
-        for (i in sellTransactionsToRemove) sellTransactions.removeAt(i)
+
         processBedBreakfastTransactions(sellTransactions, buyTransactions)
     } */
 }
