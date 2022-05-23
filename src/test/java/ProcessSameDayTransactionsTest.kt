@@ -102,6 +102,28 @@ class ProcessSameDayTransactionsTest {
     }
 
     /**
+     * Test the profitOrLoss reporting section of the reportSameDayTransaction method.
+     *
+     * Acceptance criteria:
+     *  Profit should be reported as Profit = £{Value}
+     *  Losses should be reported as Loss = £{Value}
+     *
+     * @Param profitOrLoss - The profit or loss of the transaction. Negative values indicate a loss.
+     */
+    @ParameterizedTest
+    @ValueSource(doubles = [0.00, 10.20, 200.45, -10.23, -200.00])
+    fun reportSameDayTransactionProfitOrLossTest(profitOrLoss: Double) {
+        val profitOrLossMessage: String
+        if (profitOrLoss >= 0) {
+            profitOrLossMessage = "Profit = £$profitOrLoss."
+            assertEquals("Profit = £$profitOrLoss.", profitOrLossMessage)
+        } else {
+            profitOrLossMessage = "Loss = £$profitOrLoss."
+            assertEquals("Loss = £$profitOrLoss.", profitOrLossMessage)
+        }
+    }
+
+    /**
      * Calculate the profit or loss incurred from the sale of an asset due to the same day disposal
      * rule.
      *
