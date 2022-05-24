@@ -124,6 +124,44 @@ class ProcessSameDayTransactionsTest {
     }
 
     /**
+     * Test the transaction reporting section of the reportSameDayTransaction method.
+     *
+     * Acceptance criteria:
+     *  The output should be formatted as shown below:
+     *      "SAME DAY Sell transaction(s) (IDs {sell transaction IDs}) identified with buy transaction(s)
+     *      (IDs {buy transaction IDs} ) on {transaction date}. {buy transaction quantity} shares were
+     *      bought for an average price of {average buy transaction price} GBP and {sell transaction quantity}
+     *      shares were sold for an average price of {average buy transaction price} GBP. {Profit/Loss from the transaction}"
+     *
+     * @Param rowIndex - The index of the buy and sell transactions in the buyTransactions
+     * and sellTransactions lists that should be processed.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [0, 1, 2])
+    fun reportSameDayTransactionTest(rowIndex: Int) {
+        val buyTransaction = buyTransactions[rowIndex].copy()
+        val sellTransaction = sellTransactions[rowIndex].copy()
+        val profitOrLossMessage = "Profit or loss message placeholder"
+
+        val expectedOutput = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+                ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
+                " shares were bought for an average price of " + buyTransaction.price / buyTransaction.quantity +
+                " GBP and " + sellTransaction.quantity + " shares were sold for an average price of " +
+                sellTransaction.price / sellTransaction.quantity + " GBP. $profitOrLossMessage"
+
+        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
+        val output = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+                ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
+                " shares were bought for an average price of $averageBuyPrice GBP and " +
+                sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +
+                "GBP. $profitOrLossMessage"
+        assertEquals(expectedOutput, output)
+    }
+
+    /**
      * Calculate the profit or loss incurred from the sale of an asset due to the same day disposal
      * rule.
      *
