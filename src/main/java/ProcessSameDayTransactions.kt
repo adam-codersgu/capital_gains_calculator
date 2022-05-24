@@ -47,13 +47,13 @@ class ProcessSameDayTransactions {
 
         val averageSellPrice = sellTransaction.price / sellTransaction.quantity
         val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val message = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
+        val output = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
                 ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
                 " shares were bought for an average price of $averageBuyPrice GBP and " +
                 sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +
                 "GBP. $profitOrLossMessage"
-        println(message)
+        println(output)
     }
 
     /**
