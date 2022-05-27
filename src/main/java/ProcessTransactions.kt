@@ -7,6 +7,6 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
         buyTransactions = buyTransactions.sortedBy { it.date }
         sellTransactions = sellTransactions.sortedBy { it.date }
 
-        ProcessSameDayTransactions().process(buyTransactions, sellTransactions)
+        val outstandingTransactions = ProcessSameDayTransactions().process(buyTransactions, sellTransactions)
     }
 }

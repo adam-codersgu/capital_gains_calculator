@@ -1,13 +1,11 @@
+import model.OutstandingTransactions
 import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 class ProcessSameDayTransactions {
 
-    private val outstandingBuyTransactions = mutableListOf<Transaction>()
-    private val outstandingSellTransactions = mutableListOf<Transaction>()
-    private var totalProfit = 0.00
-    private var totalLoss = 0.00
+    private val outstandingTransactions = OutstandingTransactions()
 
     /**
      * Match all same day asset purchases and disposals.
@@ -16,16 +14,23 @@ class ProcessSameDayTransactions {
      *
      * @param buyTransactions A list containing all purchase transactions ordered by date
      * @param sellTransactions A list containing all sale transactions ordered by date
+     * @return An OutstandingTransactions object detailing the total profit, total loss,
+     * and lists of outstanding Buy and Sell Transaction objects after all same day
+     * transactions have been processed.
      */
-    fun process(buyTransactions: List<Transaction>, sellTransactions: List<Transaction>) {
-        outstandingBuyTransactions.addAll(buyTransactions)
+    fun process(buyTransactions: List<Transaction>, sellTransactions: List<Transaction>): OutstandingTransactions {
+        outstandingTransactions.buyTransactions.addAll(buyTransactions)
+
         for (sellTransaction in sellTransactions) {
-            val buyTransaction = outstandingBuyTransactions.find { it.date == sellTransaction.date }
+            val buyTransaction = outstandingTransactions.buyTransactions.find {
+                it.date == sellTransaction.date
+            }
             // A buy transaction occurred on the same day as the sell transaction
             if (buyTransaction != null) reportSameDayTransaction(buyTransaction, sellTransaction)
             // No buy transaction found, hence not a same day disposal
-            else outstandingSellTransactions.add(sellTransaction)
+            else outstandingTransactions.sellTransactions.add(sellTransaction)
         }
+        return outstandingTransactions
     }
 
     /**
@@ -39,10 +44,10 @@ class ProcessSameDayTransactions {
         val profitOrLossMessage: String
         if (profitOrLoss >= 0) {
             profitOrLossMessage = "Profit = £$profitOrLoss."
-            totalProfit += profitOrLoss
+            outstandingTransactions.totalProfit += profitOrLoss
         } else {
             profitOrLossMessage = "Loss = £$profitOrLoss."
-            totalLoss += profitOrLoss
+            outstandingTransactions.totalLoss += profitOrLoss
         }
 
         val averageSellPrice = sellTransaction.price / sellTransaction.quantity
@@ -71,7 +76,7 @@ class ProcessSameDayTransactions {
             sellTransaction.quantity == buyTransaction.quantity -> {
                 profitOrLoss = BigDecimal(sellTransaction.price -
                         buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-                outstandingBuyTransactions.remove(buyTransaction)
+                outstandingTransactions.buyTransactions.remove(buyTransaction)
             }
             // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
@@ -82,33 +87,23 @@ class ProcessSameDayTransactions {
                     quantity = sellTransaction.quantity - buyTransaction.quantity,
                     price = sellTransaction.price - valueOfSoldShares
                 )
-                outstandingSellTransactions.add(remainingSoldSharesTransaction)
+                outstandingTransactions.sellTransactions.add(remainingSoldSharesTransaction)
                 profitOrLoss = BigDecimal(valueOfSoldShares -
                         buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-                outstandingBuyTransactions.remove(buyTransaction)
+                outstandingTransactions.buyTransactions.remove(buyTransaction)
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
                 val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
-                val index = outstandingBuyTransactions.indexOf(buyTransaction)
-                outstandingBuyTransactions[index].quantity -= sellTransaction.quantity
-                outstandingBuyTransactions[index].price -= valueOfPurchasedShares
+                val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
+                outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
+                outstandingTransactions.buyTransactions[index].price -= valueOfPurchasedShares
                 profitOrLoss = BigDecimal(sellTransaction.price -
                         valueOfPurchasedShares).setScale(2, RoundingMode.HALF_EVEN).toDouble()
             }
         }
         return profitOrLoss
     }
-
-    /**
-     *
-     * TODO: COULD RETURN OUTPUT IN JSON FORMAT INCLUDING RUNNING GAINS AND LOSSES?
-     *
-     */
-    /* fun processSameDayTransactions2(sellTransactions: MutableList<Transaction>, buyTransactions: MutableList<Transaction>) {
-
-        processBedBreakfastTransactions(sellTransactions, buyTransactions)
-    } */
 }
