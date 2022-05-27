@@ -15,8 +15,7 @@ import kotlin.test.assertEquals
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProcessSameDayTransactionsTest {
 
-    var buyTransactions = mutableListOf<Transaction>()
-    var sellTransactions = mutableListOf<Transaction>()
+    var outstandingTransactions = OutstandingTransactions()
 
     /**
      * Test Transaction object scenarios:
@@ -75,8 +74,8 @@ class ProcessSameDayTransactionsTest {
      */
     @BeforeAll
     private fun setup() {
-        buyTransactions.addAll(listOf(BUY_TRANSACTION_1, BUY_TRANSACTION_2, BUY_TRANSACTION_3, BUY_TRANSACTION_4))
-        sellTransactions.addAll(listOf(SELL_TRANSACTION_1, SELL_TRANSACTION_2, SELL_TRANSACTION_3, SELL_TRANSACTION_4))
+        outstandingTransactions.buyTransactions.addAll(listOf(BUY_TRANSACTION_1, BUY_TRANSACTION_2, BUY_TRANSACTION_3, BUY_TRANSACTION_4))
+        outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1, SELL_TRANSACTION_2, SELL_TRANSACTION_3, SELL_TRANSACTION_4))
     }
 
     /**
@@ -85,18 +84,18 @@ class ProcessSameDayTransactionsTest {
      */
     @Test
     fun processTest() {
-        for (sellTransaction in sellTransactions) {
-            val buyTransaction = buyTransactions.find { it.date == sellTransaction.date }
+        for (sellTransaction in outstandingTransactions.sellTransactions) {
+            val buyTransaction = outstandingTransactions.buyTransactions.find { it.date == sellTransaction.date }
             // A buy transaction occurred on the same day as the sell transaction
             if (buyTransaction != null) {
                 assertTrue {
-                    buyTransactions.indexOfFirst { it.date == sellTransaction.date } != -1
+                    outstandingTransactions.buyTransactions.indexOfFirst { it.date == sellTransaction.date } != -1
                 }
             }
             // No buy transaction found, hence not a same day disposal
             else {
                 assertTrue {
-                    buyTransactions.indexOfFirst { it.date == sellTransaction.date } == -1
+                    outstandingTransactions.buyTransactions.indexOfFirst { it.date == sellTransaction.date } == -1
                 }
             }
         }
@@ -140,8 +139,8 @@ class ProcessSameDayTransactionsTest {
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2])
     fun reportSameDayTransactionTest(rowIndex: Int) {
-        val buyTransaction = buyTransactions[rowIndex].copy()
-        val sellTransaction = sellTransactions[rowIndex].copy()
+        val buyTransaction = outstandingTransactions.buyTransactions[rowIndex].copy()
+        val sellTransaction = outstandingTransactions.sellTransactions[rowIndex].copy()
         val profitOrLossMessage = "Profit or loss message placeholder"
 
         val expectedOutput = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
@@ -172,9 +171,8 @@ class ProcessSameDayTransactionsTest {
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2])
     fun calculateProfitLossTest(rowIndex: Int) {
-        val outstandingTransactions = OutstandingTransactions(buyTransactions = buyTransactions)
-        val buyTransaction = buyTransactions[rowIndex].copy()
-        val sellTransaction = sellTransactions[rowIndex].copy()
+        val buyTransaction = outstandingTransactions.buyTransactions[rowIndex].copy()
+        val sellTransaction = outstandingTransactions.sellTransactions[rowIndex].copy()
 
         // The scenarios configured in the companion object should ensure this test always passes
         assertEquals(buyTransaction.date, sellTransaction.date)
@@ -192,13 +190,13 @@ class ProcessSameDayTransactionsTest {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
                 val valueOfSoldShares = sellTransaction.price * percentageOfSoldSharesRemaining
-                val remainingSoldSharesTransaction = sellTransaction.copy(
-                    quantity = sellTransaction.quantity - buyTransaction.quantity,
-                    price = sellTransaction.price - valueOfSoldShares
-                )
-                assertEquals(sellTransaction.quantity - buyTransaction.quantity, remainingSoldSharesTransaction.quantity)
+                val index = outstandingTransactions.sellTransactions.indexOf(sellTransaction)
+                outstandingTransactions.sellTransactions[index].quantity -= buyTransaction.quantity
+                outstandingTransactions.sellTransactions[index].price -= valueOfSoldShares
+                assertEquals(sellTransaction.quantity - buyTransaction.quantity,
+                    outstandingTransactions.sellTransactions[index].quantity)
                 assertEquals(String.format("%.2f",sellTransaction.price * percentageOfSoldSharesRemaining),
-                    String.format("%.2f",remainingSoldSharesTransaction.price))
+                    String.format("%.2f",outstandingTransactions.sellTransactions[index].price))
                 profitOrLoss = BigDecimal(valueOfSoldShares -
                         buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
                 assertEquals(String.format("%.2f",valueOfSoldShares - buyTransaction.price),
