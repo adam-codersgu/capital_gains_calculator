@@ -1,4 +1,5 @@
 
+import model.OutstandingTransactions
 import model.Transaction
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -171,7 +172,7 @@ class ProcessSameDayTransactionsTest {
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2])
     fun calculateProfitLossTest(rowIndex: Int) {
-        val outstandingBuyTransactions = buyTransactions
+        val outstandingTransactions = OutstandingTransactions(buyTransactions = buyTransactions)
         val buyTransaction = buyTransactions[rowIndex].copy()
         val sellTransaction = sellTransactions[rowIndex].copy()
 
@@ -208,12 +209,13 @@ class ProcessSameDayTransactionsTest {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
                 val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
-                val index = outstandingBuyTransactions.indexOf(buyTransaction)
-                outstandingBuyTransactions[index].quantity -= sellTransaction.quantity
-                outstandingBuyTransactions[index].price -= valueOfPurchasedShares
-                assertEquals(buyTransaction.quantity - sellTransaction.quantity,  outstandingBuyTransactions[index].quantity)
+                val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
+                outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
+                outstandingTransactions.buyTransactions[index].price -= valueOfPurchasedShares
+                assertEquals(buyTransaction.quantity - sellTransaction.quantity,
+                    outstandingTransactions.buyTransactions[index].quantity)
                 assertEquals(String.format("%.2f",buyTransaction.price * percentageOfPurchasedSharesRemaining),
-                    String.format("%.2f",outstandingBuyTransactions[index].price))
+                    String.format("%.2f",outstandingTransactions.buyTransactions[index].price))
                 profitOrLoss = BigDecimal(sellTransaction.price -
                         valueOfPurchasedShares).setScale(2, RoundingMode.HALF_EVEN).toDouble()
                 assertEquals(String.format("%.1f",sellTransaction.price - valueOfPurchasedShares),
