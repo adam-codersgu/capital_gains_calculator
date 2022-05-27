@@ -1,3 +1,4 @@
+import model.OutstandingTransactions
 import model.Transaction
 
 class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransactions: List<Transaction>) {
@@ -6,7 +7,12 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
         // Sort the transactions by date
         buyTransactions = buyTransactions.sortedBy { it.date }
         sellTransactions = sellTransactions.sortedBy { it.date }
+        var outstandingTransactions = OutstandingTransactions(
+            buyTransactions = buyTransactions.toMutableList(),
+            sellTransactions = sellTransactions.toMutableList()
+        )
 
-        val outstandingTransactions = ProcessSameDayTransactions().process(buyTransactions, sellTransactions)
+        outstandingTransactions = ProcessSameDayTransactions().process(outstandingTransactions)
+        outstandingTransactions = ProcessBedAndBreakfastTransactions().process(outstandingTransactions)
     }
 }
