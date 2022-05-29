@@ -12,7 +12,7 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
             sellTransactions = sellTransactions.toMutableList()
         )
 
-        outstandingTransactions = ProcessSameDayTransactions().process(outstandingTransactions)
-        outstandingTransactions = ProcessBedAndBreakfastTransactions().process(outstandingTransactions)
+        outstandingTransactions = ProcessSameDayTransactions(outstandingTransactions).process()
+        outstandingTransactions = ProcessBedAndBreakfastTransactions(outstandingTransactions).process()
     }
 }
