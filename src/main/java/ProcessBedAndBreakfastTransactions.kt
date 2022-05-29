@@ -5,9 +5,9 @@ import model.Transaction
 class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTransactions) : ProcessTransaction(outstandingTransactions) {
 
     /**
-     * Match all same day asset purchases and disposals.
-     * Same day disposals have top priority when matching transactions for an HMRC
-     * Capital Gains report.
+     * Match all purchases that occurred up to 30 days following a disposal (Bed and Breakfast rule).
+     * Bed and Breakfast disposals have second priority (after Same Day disposals) when matching
+     * transactions for an HMRC Capital Gains report.
      *
      * @return An OutstandingTransactions object detailing the total profit, total loss,
      * and lists of outstanding Buy and Sell Transaction objects after all same day
