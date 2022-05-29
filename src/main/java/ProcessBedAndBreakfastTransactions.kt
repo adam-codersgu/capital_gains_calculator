@@ -14,7 +14,7 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions) {
+        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
             // Look for any suitable buy transactions that occurred up to 30 days
             // after the disposal.
             val maxDate = sellTransaction.date.plusDays(31)
@@ -41,7 +41,7 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
         val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
                 "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
-                "GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
+                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
                 " GBP. $profitOrLossMessage"
         println(output)

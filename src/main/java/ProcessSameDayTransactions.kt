@@ -15,7 +15,7 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      */
     override
     fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions) {
+        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
             val buyTransaction = outstandingTransactions.buyTransactions.find {
                 it.date == sellTransaction.date
             }
