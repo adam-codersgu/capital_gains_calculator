@@ -10,7 +10,7 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * transactions for an HMRC Capital Gains report.
      *
      * @return An OutstandingTransactions object detailing the total profit, total loss,
-     * and lists of outstanding Buy and Sell Transaction objects after all same day
+     * and lists of outstanding Buy and Sell Transaction objects after all Bed and Breakfast
      * transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
