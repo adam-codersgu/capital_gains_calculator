@@ -1,0 +1,2 @@
+- Process multiple assets at once
+- Require fewer modifications of the export spreadsheet
