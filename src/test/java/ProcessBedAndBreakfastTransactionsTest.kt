@@ -1,6 +1,7 @@
 
 import model.OutstandingTransactions
 import model.Transaction
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -76,20 +77,32 @@ class ProcessBedAndBreakfastTransactionsTest {
     fun processTest() {
         for (sellTransaction in outstandingTransactions.sellTransactions) {
             val maxDate = sellTransaction.date.plusDays(31)
-            val buyTransaction = outstandingTransactions.buyTransactions.find {
-                it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
-            }
 
-            // A buy transaction occurred on the same day as the sell transaction
-            if (buyTransaction != null) {
-                assertTrue {
-                    outstandingTransactions.buyTransactions.indexOfFirst { it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate) } != -1
+            var quantityOfSharesToMatch = sellTransaction.quantity
+            while (quantityOfSharesToMatch > 0) {
+                val buyTransaction = outstandingTransactions.buyTransactions.find {
+                    it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
                 }
-            }
-            // No buy transaction found, hence not a same day disposal
-            else {
-                assertTrue {
-                    outstandingTransactions.buyTransactions.indexOfFirst { it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate) } == -1
+
+                // A buy transaction up to 30 days after the disposal
+                if (buyTransaction != null) {
+                    assertTrue {
+                        outstandingTransactions.buyTransactions.indexOfFirst { it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate) } != -1
+                    }
+
+                    // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
+                    // been modified during previous iterations.
+                    assertNotNull(outstandingTransactions.sellTransactions.find {
+                        it.transactionIDs == sellTransaction.transactionIDs
+                    })
+                    quantityOfSharesToMatch -= buyTransaction.quantity
+                }
+                // No buy transaction found, hence not a bed and breakfast disposal
+                else {
+                    assertTrue {
+                        outstandingTransactions.buyTransactions.indexOfFirst { it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate) } == -1
+                    }
+                    break
                 }
             }
         }
