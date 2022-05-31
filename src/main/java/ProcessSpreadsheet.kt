@@ -10,8 +10,6 @@ import java.time.format.DateTimeFormatter
 
 class ProcessSpreadsheet(spreadsheetFileLocation: String) {
 
-    // TODO: Add method documentation
-
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
 
@@ -22,9 +20,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         outputAssetNameAndISIN(sheet.getRow(0))
         addTransactionsToLists(sheet)
         printNumberOfDisposals()
-        // TODO: Uncomment the below once implemented
-        // ProcessTransactions(buyTransactions, sellTransactions)
-        process(buyTransactions.sortedBy { it.date }.toMutableList(), sellTransactions.sortedBy { it.date }.toMutableList())
+        ProcessTransactions(buyTransactions, sellTransactions)
     }
 
     /**
@@ -89,8 +85,20 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         }
     }
 
+    /**
+     * Prints the total number of disposals of the asset to the console.
+     */
     private fun printNumberOfDisposals() = println("Number of disposals: " + sellTransactions.size)
 
+    /**
+     * Extracts the transaction type (buy or sell) for a given spreadsheet row.
+     *
+     * @param  transactionDescription  The value of the description field for the spreadsheet row.
+     * The description will contain the transaction type.
+     * @return A String describing the transaction type (Buy or Sell)
+     * @throws UnknownTransactionTypeException if the transaction type cannot be determined. This
+     * exception may be thrown if the user includes non-buy/sell transactions in the spreadsheet.
+     */
     private fun getTransactionType(transactionDescription: String): String {
         return when (transactionDescription.take(4)) {
             "Sell" -> "Sell"
@@ -99,6 +107,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         }
     }
 
+    /**
+     * Extracts the transaction quantity for a given spreadsheet row.
+     *
+     * @param  transactionDescription  The value of the description field for the spreadsheet row.
+     * The description will contain the transaction quantity.
+     * @return An Int detailing the transaction quantity.
+     */
     private fun getTransactionQuantity(transactionDescription: String): Int {
         // Remove Buy/Sell prefix from the description
         var truncatedDescription = transactionDescription.removePrefix("Buy ")
