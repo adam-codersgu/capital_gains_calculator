@@ -22,7 +22,6 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
                 it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
             }
 
-            // A buy transaction occurred on the same day as the sell transaction
             if (buyTransaction != null) reportBedAndBreakfastTransaction(buyTransaction, sellTransaction)
         }
         return outstandingTransactions
