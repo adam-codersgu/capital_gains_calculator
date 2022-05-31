@@ -13,7 +13,7 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
 
     /**
      * Process a given transaction.
-     *
+     * @abstract
      * @return An OutstandingTransactions object detailing the total profit, total loss,
      * and lists of outstanding Buy and Sell Transaction objects after all transactions managed by the
      * class have been processed.
