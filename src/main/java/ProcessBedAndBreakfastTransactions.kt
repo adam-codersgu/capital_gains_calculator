@@ -18,11 +18,22 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
             // Look for any suitable buy transactions that occurred up to 30 days
             // after the disposal.
             val maxDate = sellTransaction.date.plusDays(31)
-            val buyTransaction = outstandingTransactions.buyTransactions.find {
-                it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
-            }
 
-            if (buyTransaction != null) reportBedAndBreakfastTransaction(buyTransaction, sellTransaction)
+            var quantityOfSharesToMatch = sellTransaction.quantity
+            while (quantityOfSharesToMatch > 0) {
+                val buyTransaction = outstandingTransactions.buyTransactions.find {
+                    it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
+                }
+
+                if (buyTransaction != null) {
+                    // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
+                    // been modified during previous iterations.
+                    reportBedAndBreakfastTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
+                        it.transactionIDs == sellTransaction.transactionIDs
+                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIDs))
+                    quantityOfSharesToMatch -= buyTransaction.quantity
+                } else break
+            }
         }
         return outstandingTransactions
     }
