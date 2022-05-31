@@ -1,9 +1,13 @@
 
 import model.OutstandingTransactions
+import model.Section104
 import model.Transaction
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -12,6 +16,7 @@ import kotlin.test.assertTrue
 class ProcessSection104TransactionsTest {
 
     var outstandingTransactions = OutstandingTransactions()
+    var section104 = Section104()
 
     /**
      * Test Transaction object scenarios:
@@ -58,12 +63,13 @@ class ProcessSection104TransactionsTest {
     }
 
     /**
-     * Before the tests begin, we should create lists of mock buy and sell model.Transaction objects
+     * Reset the Section 104 holding and list of outstanding transaction objects after each test.
      */
-    @BeforeEach
-    private fun setup() {
-        outstandingTransactions.buyTransactions.addAll(listOf(BUY_TRANSACTION_1, BUY_TRANSACTION_2, BUY_TRANSACTION_3))
-        outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1, SELL_TRANSACTION_2, SELL_TRANSACTION_3))
+    @AfterEach
+    fun teardown() {
+        section104 = Section104()
+        outstandingTransactions.buyTransactions.clear()
+        outstandingTransactions.sellTransactions.clear()
     }
 
     /**
@@ -73,6 +79,10 @@ class ProcessSection104TransactionsTest {
      */
     @Test
     fun processTest() {
+        // Populate the lists of buy and sell Transaction objects
+        outstandingTransactions.buyTransactions.addAll(listOf(BUY_TRANSACTION_1, BUY_TRANSACTION_2, BUY_TRANSACTION_3))
+        outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1, SELL_TRANSACTION_2, SELL_TRANSACTION_3))
+
         // Group all the transactions and sort them in date order
         val allTransactions = (outstandingTransactions.sellTransactions + outstandingTransactions.buyTransactions)
             .sortedBy { it.date }
@@ -92,5 +102,48 @@ class ProcessSection104TransactionsTest {
             // Process sell transactions
             else assertEquals(transaction.direction, "Sell")
         }
+    }
+
+    /**
+     * Add purchased shares to the Section 104 holding. If there are outstanding sell transactions, then
+     * purchased shares may need to be matched with those before being added to the Section 104 holding.
+     *
+     * @param scenario The testing scenario number, which is used to select the appropriate test data.
+     *  Scenario 1 - The list of outstanding sell transactions is empty.
+     *  Scenario 2 - The list of outstanding sell transactions contains items.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [1, 2])
+    fun addTransactionToSection104HoldingTest(scenario: Int) {
+        val buyTransaction = BUY_TRANSACTION_1.copy()
+        if (scenario == 2) {
+            outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1, SELL_TRANSACTION_2, SELL_TRANSACTION_3))
+        }
+
+        // Need to check there are not outstanding disposals to be matched
+        // Otherwise the purchased shares should be used to close a short position rather before
+        // being added to the Section 104 holding
+        if (outstandingTransactions.sellTransactions.isNotEmpty()) {
+            assertNotEquals(outstandingTransactions.sellTransactions.size, 0)
+
+            // Mock the addPurchasedSharesToOutstandingTransactions method by returning
+            // a Transaction with 5 fewer shares and a price 10 units lower
+            val remainingBuyTransaction = buyTransaction.copy(
+                quantity = buyTransaction.quantity - 5,
+                price = buyTransaction.price - 10
+            )
+
+            buyTransaction.quantity = remainingBuyTransaction.quantity
+            assertEquals(buyTransaction.quantity, remainingBuyTransaction.quantity)
+            buyTransaction.price = remainingBuyTransaction.price
+            assertEquals(buyTransaction.price, remainingBuyTransaction.price)
+        }
+
+        section104.transactionIDs.addAll(buyTransaction.transactionIDs)
+        assertEquals(section104.transactionIDs, buyTransaction.transactionIDs)
+        section104.quantity += buyTransaction.quantity
+        assertEquals(section104.quantity, buyTransaction.quantity)
+        section104.price += buyTransaction.price
+        assertEquals(section104.price, buyTransaction.price)
     }
 }
