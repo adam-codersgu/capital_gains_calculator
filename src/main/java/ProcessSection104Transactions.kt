@@ -43,10 +43,10 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         return outstandingTransactions
     }
 
-    // TODO - TEST ME
     /**
-     * Add purchased shares to the Section 104 holding. Also, print a summary of the
-     * shares added to the Section 104 holding to the console.
+     * Add purchased shares to the Section 104 holding. If there are outstanding sell transactions, then
+     * purchased shares may need to be matched with those before being added to the Section 104 holding.
+     * Also, print a summary of the shares added to the Section 104 holding to the console.
      *
      * @param buyTransaction The Transaction object associated with the purchases for a given day
      */
@@ -63,11 +63,11 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         section104.transactionIDs.addAll(buyTransaction.transactionIDs)
         section104.quantity += buyTransaction.quantity
         section104.price += buyTransaction.price
-        val message = "SECTION 104 " + buyTransaction.quantity + " shares priced at " +
+        val output = "SECTION 104 " + buyTransaction.quantity + " shares priced at " +
                 buyTransaction.price / buyTransaction.quantity + " GBP added to the " +
                 "Section 104 holding on " + buyTransaction.date + " (transaction ID(s) " +
                 buyTransaction.transactionIDs + ")"
-        println(message)
+        println(output)
     }
 
     // TODO - TEST ME
