@@ -55,7 +55,6 @@ class ProcessBedAndBreakfastTransactionsTest {
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             direction = "Sell",
             date = LocalDate.now().minusDays(5),
-            quantity = 15,
             price = 102.04
         )
     }

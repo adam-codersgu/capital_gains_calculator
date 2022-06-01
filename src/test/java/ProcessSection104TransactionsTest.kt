@@ -3,11 +3,14 @@ import model.OutstandingTransactions
 import model.Section104
 import model.Transaction
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -21,10 +24,9 @@ class ProcessSection104TransactionsTest {
     /**
      * Test Transaction object scenarios:
      *  BUY_TRANSACTION_1 and SELL_TRANSACTION_1 are one day apart, same size, same price
-     *  BUY_TRANSACTION_2 and SELL_TRANSACTION_2 are different days, different prices (profitable),
-     *  and should be matched according to the Bed and Breakfast disposal rule
-     *  BUY_TRANSACTION_3 and SELL_TRANSACTION_3 are different days, different prices (profitable),
-     *  and should be matched according to the Bed and Breakfast disposal rule
+     *  BUY_TRANSACTION_2 and SELL_TRANSACTION_2 are different days, different prices (profitable).
+     *  BUY_TRANSACTION_3 and SELL_TRANSACTION_3 are different days, different prices (loss). The
+     *      quantity of sold shares is greater than the quantity of purchased shares.
      */
     companion object {
         private val BUY_TRANSACTION_1 = Transaction(
@@ -57,8 +59,8 @@ class ProcessSection104TransactionsTest {
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             direction = "Sell",
             date = LocalDate.now().minusDays(5),
-            quantity = 15,
-            price = 102.04
+            quantity = 20,
+            price = 143.04
         )
     }
 
@@ -145,5 +147,160 @@ class ProcessSection104TransactionsTest {
         assertEquals(section104.quantity, buyTransaction.quantity)
         section104.price += buyTransaction.price
         assertEquals(section104.price, buyTransaction.price)
+    }
+
+    /**
+     * Determine whether any purchased shares from a buy transaction must be added to the list
+     * of outstanding transaction to be matched with outstanding sell transactions via the
+     * acquisition following disposal rule. If all outstanding sell transactions are accounted for,
+     * then the remaining purchased shares can be added to the Section 104 holding.
+     *
+     * @param scenario The testing scenario number, which is used to select the appropriate test data.
+     *  Scenario 1 - The lists of outstanding buy and sell transactions are empty.
+     *  Scenario 2 - The list of outstanding sell transactions contains the same amount of shares as the
+     *      supplied buy transaction. The list of outstanding buy transactions is empty.
+     *  Scenario 3 - The list of outstanding sell transactions contains fewer shares than the supplied
+     *      buy transaction. The list of outstanding buy transactions is empty.
+     *  Scenario 4 - The lists of outstanding sell and buy transactions contain an equal number of shares.
+     *  Scenario 5 - The list of outstanding sell transactions contains a greater quantity of shares than
+     *      the list of outstanding buy transactions.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [1, 2, 3, 4, 5])
+    fun addPurchasedSharesToOutstandingTransactionsTest(scenario: Int) {
+        val buyTransaction = BUY_TRANSACTION_1.copy()
+
+        when (scenario) {
+            2 -> outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1))
+            3 -> {
+                buyTransaction.quantity += buyTransaction.quantity
+                buyTransaction.price += buyTransaction.price
+                outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1))
+            }
+            4 -> {
+                outstandingTransactions.buyTransactions.addAll(listOf(BUY_TRANSACTION_2))
+                outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_2))
+            }
+            5 -> {
+                outstandingTransactions.buyTransactions.addAll(listOf(BUY_TRANSACTION_3))
+                outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_3))
+            }
+        }
+
+        var quantityOfOutstandingSoldShares = outstandingTransactions.sellTransactions.sumOf { it.quantity }
+
+        var testQuantityOfOutstandingSoldShares = 0
+        for (transaction in outstandingTransactions.sellTransactions) {
+            testQuantityOfOutstandingSoldShares += transaction.quantity
+        }
+        assertEquals(quantityOfOutstandingSoldShares, testQuantityOfOutstandingSoldShares)
+
+        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.quantity }
+        for (transaction in outstandingTransactions.buyTransactions) {
+            testQuantityOfOutstandingSoldShares -= transaction.quantity
+        }
+        assertEquals(quantityOfOutstandingSoldShares, testQuantityOfOutstandingSoldShares)
+
+        when {
+            // No sold shares outstanding. Can add the full buy transaction to the Section 104 holding
+            quantityOfOutstandingSoldShares == 0 -> assertEquals(testQuantityOfOutstandingSoldShares, 0)
+            // If there are sufficient outstanding sell shares, then add the full buy transaction
+            quantityOfOutstandingSoldShares >= buyTransaction.quantity -> {
+                assertTrue(outstandingTransactions.buyTransactions.add(buyTransaction))
+            }
+            // Else add only the required buy transaction shares and transfer the rest to the Section 104 holding
+            else -> {
+                val originalBuyTransaction = buyTransaction.copy()
+
+                val averagePurchasePrice = buyTransaction.price / buyTransaction.quantity
+                val priceOfOutstandingShares = BigDecimal(averagePurchasePrice * quantityOfOutstandingSoldShares)
+                    .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                val outstandingBuyTransaction = buyTransaction.copy(
+                    quantity = quantityOfOutstandingSoldShares,
+                    price = priceOfOutstandingShares
+                )
+                assertTrue(outstandingTransactions.buyTransactions.add(outstandingBuyTransaction))
+                buyTransaction.quantity -= quantityOfOutstandingSoldShares
+                assertEquals(originalBuyTransaction.quantity, buyTransaction.quantity +
+                        outstandingBuyTransaction.quantity)
+                buyTransaction.price -= priceOfOutstandingShares
+                assertEquals(originalBuyTransaction.price, buyTransaction.price +
+                        outstandingBuyTransaction.price)
+            }
+        }
+    }
+
+    /**
+     * Match a sell transaction with shares in the Section 104 holding. Also, calculate the profit
+     * or loss incurred from the disposal.
+     *
+     * @param scenario The testing scenario number, which is used to select the appropriate test data.
+     *  Scenario 1 - The Section 104 holding is empty.
+     *  Scenario 2 - The Section 104 holding contains an equal number of shares and price as the
+     *      sell transaction.
+     *  Scenario 3 - The Section 104 holding contains a greater number of shares and greater price than
+     *      the sell transaction.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [1, 2, 3])
+    fun matchDisposalWithSection104HoldingTest(scenario: Int) {
+        val sellTransaction = SELL_TRANSACTION_1.copy()
+
+        when (scenario) {
+            2 -> section104 = Section104(
+                transactionIDs = BUY_TRANSACTION_1.transactionIDs,
+                quantity = BUY_TRANSACTION_1.quantity,
+                price = BUY_TRANSACTION_1.price
+            )
+            3 -> section104 = Section104(
+                transactionIDs = BUY_TRANSACTION_2.transactionIDs,
+                quantity = BUY_TRANSACTION_2.quantity,
+                price = BUY_TRANSACTION_2.price
+            )
+        }
+
+        // If the Section 104 holding is empty then add the disposal to the OutstandingTransactions object.
+        if (section104.quantity == 0) {
+            assertTrue(outstandingTransactions.sellTransactions.add(sellTransaction))
+            return
+        } else assertTrue(section104.quantity > 0)
+
+        // Cannot match more shares than exist in the Section 104 holding
+        val disposalQuantityToBeMatched = if (sellTransaction.quantity >= section104.quantity) section104.quantity
+        else sellTransaction.quantity
+
+        if (sellTransaction.quantity >= section104.quantity) assertEquals(section104.quantity, disposalQuantityToBeMatched)
+        else assertEquals(sellTransaction.quantity, disposalQuantityToBeMatched)
+
+        val averageDisposalPrice = sellTransaction.price / sellTransaction.quantity
+        val averagePurchasePrice = section104.price / section104.quantity
+
+        val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
+        val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
+        val profitOrLoss = BigDecimal(totalDisposalPrice - totalPurchasePrice)
+            .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+
+        Assertions.assertEquals(
+            String.format("%.1f", ((sellTransaction.price / sellTransaction.quantity) * disposalQuantityToBeMatched)
+                    - ((section104.price / section104.quantity) * disposalQuantityToBeMatched)),
+            String.format("%.1f", profitOrLoss)
+        )
+
+        // There were insufficient shares in the Section 104 holding to match the full disposal
+        if (sellTransaction.quantity > section104.quantity) {
+            val originalSellTransaction = sellTransaction.copy()
+            sellTransaction.quantity -= section104.quantity
+            assertEquals(originalSellTransaction.quantity, section104.quantity + sellTransaction.quantity)
+            sellTransaction.price -= totalDisposalPrice
+            assertEquals(originalSellTransaction.price, totalDisposalPrice + sellTransaction.price)
+            assertTrue(outstandingTransactions.sellTransactions.add(sellTransaction))
+        }
+
+        val originalSection104 = section104.copy()
+        // Remove the matched shares from the Section 104 holding
+        section104.quantity -= disposalQuantityToBeMatched
+        assertEquals(originalSection104.quantity, section104.quantity + disposalQuantityToBeMatched)
+        section104.price -= totalPurchasePrice
+        assertEquals(originalSection104.price, section104.price + totalPurchasePrice)
     }
 }
