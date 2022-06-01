@@ -30,13 +30,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
             // Add buy transactions to the Section 104 holding
             if (transaction.direction == "Buy") addTransactionToSection104Holding(transaction)
             // Process sell transactions
-            else {
-                // If the Section 104 holding is not empty, then attempt to match the disposal
-                if (section104.quantity > 0) matchDisposalWithSection104Holding(transaction)
-                // Else add the disposal to the OutstandingTransactions object because it cannot be
-                // matched with the Section 104 holding.
-                else outstandingTransactions.sellTransactions.add(transaction)
-            }
+            else matchDisposalWithSection104Holding(transaction)
         }
         printSummaryOfSection104()
 
@@ -70,16 +64,22 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         println(output)
     }
 
-    // TODO - TEST ME
-    // RETURNS NULL IF ALL PURCHASED SHARES ADDED TO OUTSTANDING TRANSACTION
+    /**
+     * Determine whether any purchased shares from a buy transaction must be added to the list
+     * of outstanding transaction to be matched with outstanding sell transactions via the
+     * acquisition following disposal rule. If all outstanding sell transactions are accounted for,
+     * then the remaining purchased shares can be added to the Section 104 holding.
+     *
+     * @param buyTransaction The Transaction object associated with the purchases for a given day
+     * @return A Transaction object containing purchased shares that can be added to the Section 104
+     * holding. If no purchased shares remain after being matched with outstanding sold shares, then
+     * null will be returned.
+     */
     private fun addPurchasedSharesToOutstandingTransactions(buyTransaction: Transaction): Transaction? {
         var quantityOfOutstandingSoldShares = 0
-        for (transaction in outstandingTransactions.sellTransactions) {
-            quantityOfOutstandingSoldShares += transaction.quantity
-        }
-        for (transaction in outstandingTransactions.buyTransactions) {
-            quantityOfOutstandingSoldShares -= transaction.quantity
-        }
+        quantityOfOutstandingSoldShares += outstandingTransactions.sellTransactions.sumOf { it.quantity }
+        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.quantity }
+
         return when {
             // No sold shares outstanding. Can add the full buy transaction to the Section 104 holding
             quantityOfOutstandingSoldShares == 0 -> buyTransaction
@@ -105,15 +105,27 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         }
     }
 
-    // TODO - TEST ME
+    /**
+     * Match a sell transaction with shares in the Section 104 holding. Also, calculate the profit
+     * or loss incurred from the disposal.
+     *
+     * @param sellTransaction The Transaction object associated with the disposals for a given day
+     */
     private fun matchDisposalWithSection104Holding(sellTransaction: Transaction) {
+        // If the Section 104 holding is empty then add the disposal to the OutstandingTransactions object.
+        if (section104.quantity == 0) {
+            outstandingTransactions.sellTransactions.add(sellTransaction)
+            return
+        }
+
         // Cannot match more shares than exist in the Section 104 holding
         val disposalQuantityToBeMatched = if (sellTransaction.quantity >= section104.quantity) section104.quantity
         else sellTransaction.quantity
 
         val averageDisposalPrice = sellTransaction.price / sellTransaction.quantity
         val averagePurchasePrice = section104.price / section104.quantity
-        var message = "SECTION 104 $disposalQuantityToBeMatched shares from sell transaction (ID(s) " +
+
+        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell transaction (ID(s) " +
                 sellTransaction.transactionIDs + ") dated " + sellTransaction.date + " identified with " +
                 "the Section 104 holding. The average price of the sold shares was $averageDisposalPrice GBP, " +
                 "and the average price of the shares in the Section 104 holding was $averagePurchasePrice GBP. "
@@ -122,6 +134,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
         val profitOrLoss = BigDecimal(totalDisposalPrice - totalPurchasePrice)
             .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+        printTransactionSummary(profitOrLoss, summary)
 
         // There were insufficient shares in the Section 104 holding to match the full disposal
         if (sellTransaction.quantity > section104.quantity) {
@@ -136,23 +149,27 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
 
         // If all shares in the Section 104 holding have been sold, then reset the Section104 object
         if (section104.quantity == 0) section104 = Section104()
+    }
 
+    // TODO - TEST ME
+    private fun printTransactionSummary(profitOrLoss: Double, summary: String) {
+        val profitOrLossSummary: String
         if (profitOrLoss >= 0) {
-            message += "Profit = £$profitOrLoss."
+            profitOrLossSummary = "Profit = £$profitOrLoss."
             outstandingTransactions.totalProfit += profitOrLoss
         } else {
-            message += "Loss = £$profitOrLoss."
+            profitOrLossSummary = "Loss = £$profitOrLoss."
             outstandingTransactions.totalLoss += profitOrLoss
         }
-        println(message)
+        println(summary + profitOrLossSummary)
     }
 
     // TODO - TEST ME
     private fun printSummaryOfSection104() {
         if (section104.quantity != 0) {
-            println("CARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in the Section 104 holding. " +
+            println("\nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in the Section 104 holding. " +
                     "These shares may need to be carried forward to be matched with future disposals. \n" +
-                    "Summary of outstanding Section 104 holding: $section104")
+                    "Summary of outstanding Section 104 holding: $section104\n")
         }
     }
 }
