@@ -3,7 +3,6 @@ import model.OutstandingTransactions
 import model.Section104
 import model.Transaction
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -277,13 +276,12 @@ class ProcessSection104TransactionsTest {
 
         val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
         val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
-        val profitOrLoss = BigDecimal(totalDisposalPrice - totalPurchasePrice)
-            .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+        val profitOrLoss = totalDisposalPrice - totalPurchasePrice
 
-        Assertions.assertEquals(
-            String.format("%.1f", ((sellTransaction.price / sellTransaction.quantity) * disposalQuantityToBeMatched)
-                    - ((section104.price / section104.quantity) * disposalQuantityToBeMatched)),
-            String.format("%.1f", profitOrLoss)
+        assertEquals(
+            ((sellTransaction.price / sellTransaction.quantity) * disposalQuantityToBeMatched)
+                    - ((section104.price / section104.quantity) * disposalQuantityToBeMatched),
+            profitOrLoss
         )
 
         // There were insufficient shares in the Section 104 holding to match the full disposal
@@ -302,5 +300,106 @@ class ProcessSection104TransactionsTest {
         assertEquals(originalSection104.quantity, section104.quantity + disposalQuantityToBeMatched)
         section104.price -= totalPurchasePrice
         assertEquals(originalSection104.price, section104.price + totalPurchasePrice)
+    }
+
+    /**
+     * Assess the ability of the matchDisposalWithSection104Holding method to generate an appropriately
+     * formatted transaction summary for disposals matched with shares in the Section 104 holding.
+     *
+     * Acceptance criteria:
+     *  The transaction summary should be formatted as shown below:
+     *      SECTION 104 {disposalQuantityToBeMatched} shares from sell transaction (ID(s)
+            {sellTransaction.transactionIDs} dated {sellTransaction.date} identified with the
+            Section 104 holding. The average price of the sold shares was {averageDisposalPrice}
+            GBP, and the average price of the shares in the Section 104 holding was {averagePurchasePrice} GBP.
+     */
+    @Test
+    fun generateTransactionSummaryTest() {
+        val sellTransaction = SELL_TRANSACTION_1.copy()
+        section104 = Section104(
+            transactionIDs = BUY_TRANSACTION_1.transactionIDs,
+            quantity = BUY_TRANSACTION_1.quantity,
+            price = BUY_TRANSACTION_1.price
+        )
+
+        val expectedSummary = "SECTION 104 " + sellTransaction.quantity + " shares from sell transaction " +
+                "(ID(s) " + sellTransaction.transactionIDs + ") dated " + sellTransaction.date + " identified " +
+                "with the Section 104 holding. The average price of the sold shares was " +
+                sellTransaction.price / sellTransaction.quantity + " GBP, and the average price of the shares " +
+                "in the Section 104 holding was " + section104.price / section104.quantity + " GBP. "
+
+        val disposalQuantityToBeMatched = sellTransaction.quantity
+        val averageDisposalPrice = sellTransaction.price / sellTransaction.quantity
+        val averagePurchasePrice = section104.price / section104.quantity
+        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell transaction (ID(s) " +
+                sellTransaction.transactionIDs + ") dated " + sellTransaction.date + " identified with " +
+                "the Section 104 holding. The average price of the sold shares was $averageDisposalPrice GBP, " +
+                "and the average price of the shares in the Section 104 holding was $averagePurchasePrice GBP. "
+
+        assertEquals(expectedSummary, summary)
+    }
+
+    /**
+     * Prints a summary of a disposal that is matched against shares in the Section 104 holding.
+     * The transaction summary includes the profit or loss resulting from the disposal.
+     *
+     * Acceptance criteria:
+     *  The profit or loss amount must always be rounded to two decimal figures.
+     *
+     * @Param profitOrLoss - The profit or loss of the transaction. Negative values indicate a loss.
+     */
+    @ParameterizedTest
+    @ValueSource(doubles = [0.00, 10.20, 200.45, -10.23, -200.00])
+    fun printTransactionSummaryTest(profitOrLoss: Double) {
+        val profitOrLossRounded = BigDecimal(profitOrLoss)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+
+        val expectedOutput = if (profitOrLoss >= 0) "Placeholder summary Profit = £$profitOrLossRounded."
+        else "Placeholder summary Loss = £$profitOrLossRounded."
+
+        val summary = "Placeholder summary "
+        val profitOrLossSummary = if (profitOrLoss >= 0) "Profit = £$profitOrLossRounded."
+        else "Loss = £$profitOrLossRounded."
+
+        assertEquals(expectedOutput, summary + profitOrLossSummary)
+    }
+
+    /**
+     * Prints a summary of shares remaining in the Section 104 holding after all suitable disposals
+     * have been processed. Any shares remaining in the Section 104 holding will likely need to be
+     * carried forward to future tax years and matched with future disposals.
+     *
+     * Acceptance criteria:
+     *  The Section 104 summary should be formatted as shown below:
+     *      \nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in the Section 104 holding.
+            These shares may need to be carried forward to be matched with future disposals. \n
+            Summary of outstanding Section 104 holding: {section104}\n
+     *
+     * @param scenario The testing scenario number, which is used to select the appropriate test data.
+     *  Scenario 1 - The Section 104 holding is empty.
+     *  Scenario 2 - The Section 104 contains shares.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [1, 2])
+    private fun printSummaryOfSection104Test(scenario: Int) {
+        var expectedMessage = ""
+        if (scenario == 2) {
+            section104 = Section104(
+                transactionIDs = BUY_TRANSACTION_1.transactionIDs,
+                quantity = BUY_TRANSACTION_1.quantity,
+                price = BUY_TRANSACTION_1.price
+            )
+            expectedMessage = "\nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in " +
+                    "the Section 104 holding. These shares may need to be carried forward to be matched with " +
+                    "future disposals. \n" +
+                    "Summary of outstanding Section 104 holding: $section104\n"
+        }
+
+        if (section104.quantity != 0) {
+            val outputMessage = "\nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in the Section 104 holding. " +
+                    "These shares may need to be carried forward to be matched with future disposals. \n" +
+                    "Summary of outstanding Section 104 holding: $section104\n"
+            assertEquals(expectedMessage, outputMessage)
+        } else assertEquals(section104, Section104())
     }
 }
