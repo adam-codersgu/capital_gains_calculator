@@ -361,6 +361,7 @@ class ProcessSection104TransactionsTest {
         val profitOrLossSummary = if (profitOrLoss >= 0) "Profit = £$profitOrLossRounded."
         else "Loss = £$profitOrLossRounded."
 
+        assertEquals(2, BigDecimal(profitOrLossRounded).scale())
         assertEquals(expectedOutput, summary + profitOrLossSummary)
     }
 
