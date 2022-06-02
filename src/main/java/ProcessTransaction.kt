@@ -1,3 +1,4 @@
+
 import model.OutstandingTransactions
 import model.Transaction
 import java.math.BigDecimal
@@ -30,12 +31,14 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
      */
     fun getProfitOrLoss(buyTransaction: Transaction, sellTransaction: Transaction): String {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
+        val profitOrLossRounded = BigDecimal(profitOrLoss)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
         return if (profitOrLoss >= 0) {
             outstandingTransactions.totalProfit += profitOrLoss
-            "Profit = £$profitOrLoss."
+            "Profit = £$profitOrLossRounded."
         } else {
             outstandingTransactions.totalLoss += profitOrLoss
-            "Loss = £$profitOrLoss."
+            "Loss = £$profitOrLossRounded."
         }
     }
 
@@ -51,24 +54,21 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
         when {
             // Quantity purchased and sold are equal
             sellTransaction.quantity == buyTransaction.quantity -> {
-                profitOrLoss = BigDecimal(sellTransaction.price -
-                        buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                profitOrLoss = sellTransaction.price - buyTransaction.price
             }
             // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
                 val valueOfSoldShares = sellTransaction.price * percentageOfSoldSharesRemaining
-                profitOrLoss = BigDecimal(valueOfSoldShares -
-                        buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                profitOrLoss = valueOfSoldShares - buyTransaction.price
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
                 val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
-                profitOrLoss = BigDecimal(sellTransaction.price -
-                        valueOfPurchasedShares).setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                profitOrLoss = sellTransaction.price - valueOfPurchasedShares
             }
         }
         updateOutstandingTransactions(buyTransaction, sellTransaction)

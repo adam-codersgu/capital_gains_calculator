@@ -100,19 +100,24 @@ class ProcessTransactionTest {
      * Acceptance criteria:
      *  Profit should be reported as Profit = £{Value}
      *  Losses should be reported as Loss = £{Value}
+     *  The profit or loss amount must always be rounded to two decimal figures.
      *
      * @Param profitOrLoss - The profit or loss of the transaction. Negative values indicate a loss.
      */
     @ParameterizedTest
     @ValueSource(doubles = [0.00, 10.20, 200.45, -10.23, -200.00])
     fun getProfitOrLossTest(profitOrLoss: Double) {
-        val profitOrLossMessage: String
+        val profitOrLossRounded = BigDecimal(profitOrLoss)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+
+        val expectedOutput = if (profitOrLoss >= 0) "Profit = £$profitOrLossRounded."
+        else "Loss = £$profitOrLossRounded."
+
+        assertEquals(2, BigDecimal(profitOrLossRounded).scale())
         if (profitOrLoss >= 0) {
-            profitOrLossMessage = "Profit = £$profitOrLoss."
-            assertEquals("Profit = £$profitOrLoss.", profitOrLossMessage)
+            assertEquals(expectedOutput, "Profit = £$profitOrLossRounded.")
         } else {
-            profitOrLossMessage = "Loss = £$profitOrLoss."
-            assertEquals("Loss = £$profitOrLoss.", profitOrLossMessage)
+            assertEquals(expectedOutput, "Loss = £$profitOrLossRounded.")
         }
     }
 
@@ -132,12 +137,8 @@ class ProcessTransactionTest {
         when {
             // Quantity purchased and sold are equal
             sellTransaction.quantity == buyTransaction.quantity -> {
-                profitOrLoss = BigDecimal(sellTransaction.price -
-                        buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-                assertEquals(
-                    String.format("%.1f", sellTransaction.price - buyTransaction.price),
-                    String.format("%.1f", profitOrLoss)
-                )
+                profitOrLoss = sellTransaction.price - buyTransaction.price
+                assertEquals(sellTransaction.price - buyTransaction.price, profitOrLoss)
             }
             // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
@@ -155,12 +156,8 @@ class ProcessTransactionTest {
                     String.format("%.2f", sellTransaction.price * percentageOfSoldSharesRemaining),
                     String.format("%.2f", outstandingTransactions.sellTransactions[index].price)
                 )
-                profitOrLoss = BigDecimal(valueOfSoldShares -
-                        buyTransaction.price).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-                assertEquals(
-                    String.format("%.2f", valueOfSoldShares - buyTransaction.price),
-                    String.format("%.2f", profitOrLoss)
-                )
+                profitOrLoss = valueOfSoldShares - buyTransaction.price
+                assertEquals(valueOfSoldShares - buyTransaction.price, profitOrLoss)
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
@@ -178,12 +175,8 @@ class ProcessTransactionTest {
                     String.format("%.2f", buyTransaction.price * percentageOfPurchasedSharesRemaining),
                     String.format("%.2f", outstandingTransactions.buyTransactions[index].price)
                 )
-                profitOrLoss = BigDecimal(sellTransaction.price -
-                        valueOfPurchasedShares).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-                assertEquals(
-                    String.format("%.1f", sellTransaction.price - valueOfPurchasedShares),
-                    String.format("%.1f", profitOrLoss)
-                )
+                profitOrLoss = sellTransaction.price - valueOfPurchasedShares
+                assertEquals(sellTransaction.price - valueOfPurchasedShares, profitOrLoss)
             }
         }
     }
