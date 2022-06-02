@@ -34,9 +34,10 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
             println()
         }
 
-        val gains = BigDecimal(outstandingTransactions.totalProfit).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-        val losses = BigDecimal(outstandingTransactions.totalLoss).setScale(2, RoundingMode.HALF_EVEN).toDouble()
-        val profits = BigDecimal(gains - losses).setScale(2, RoundingMode.HALF_EVEN).toString()
+        val gains = BigDecimal(outstandingTransactions.totalProfit).setScale(2, RoundingMode.HALF_EVEN).toString()
+        val losses = BigDecimal(outstandingTransactions.totalLoss).setScale(2, RoundingMode.HALF_EVEN).toString()
+        val profits = BigDecimal(outstandingTransactions.totalProfit - outstandingTransactions.totalLoss)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Total gains (excluding fees): £$gains \n" +
                 "Total losses (excluding fees): £$losses \n" +
                 "Profit (gains minus losses): £$profits \n" +
