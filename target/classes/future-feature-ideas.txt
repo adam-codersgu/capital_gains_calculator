@@ -1,2 +1,3 @@
 - Process multiple assets at once
 - Require fewer modifications of the export spreadsheet
+- Change reporting of transaction ID(s) to reflect singular/plural
