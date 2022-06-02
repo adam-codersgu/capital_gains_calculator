@@ -132,8 +132,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
 
         val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
         val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
-        val profitOrLoss = BigDecimal(totalDisposalPrice - totalPurchasePrice)
-            .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+        val profitOrLoss = totalDisposalPrice - totalPurchasePrice
         printTransactionSummary(profitOrLoss, summary)
 
         // There were insufficient shares in the Section 104 holding to match the full disposal
@@ -151,20 +150,32 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         if (section104.quantity == 0) section104 = Section104()
     }
 
-    // TODO - TEST ME
+    /**
+     * Prints a summary of a disposal that is matched against shares in the Section 104 holding.
+     * The transaction summary includes the profit or loss resulting from the disposal.
+     *
+     * @param profitOrLoss The profit or loss incurred from the disposal.
+     * @param summary The transaction summary (excluding the profit/loss summary)
+     */
     private fun printTransactionSummary(profitOrLoss: Double, summary: String) {
+        val profitOrLossRounded = BigDecimal(profitOrLoss)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
         val profitOrLossSummary: String
         if (profitOrLoss >= 0) {
-            profitOrLossSummary = "Profit = £$profitOrLoss."
+            profitOrLossSummary = "Profit = £$profitOrLossRounded."
             outstandingTransactions.totalProfit += profitOrLoss
         } else {
-            profitOrLossSummary = "Loss = £$profitOrLoss."
+            profitOrLossSummary = "Loss = £$profitOrLossRounded."
             outstandingTransactions.totalLoss += profitOrLoss
         }
         println(summary + profitOrLossSummary)
     }
 
-    // TODO - TEST ME
+    /**
+     * Prints a summary of shares remaining in the Section 104 holding after all suitable disposals
+     * have been processed. Any shares remaining in the Section 104 holding will likely need to be
+     * carried forward to future tax years and matched with future disposals.
+     */
     private fun printSummaryOfSection104() {
         if (section104.quantity != 0) {
             println("\nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in the Section 104 holding. " +
