@@ -60,7 +60,7 @@ class ProcessBedAndBreakfastTransactionsTest {
     }
 
     /**
-     * Before the tests begin, we should create lists of mock buy and sell model.Transaction objects
+     * Before the tests begin, create lists of mock outstanding buy and sell Transaction objects
      */
     @BeforeAll
     private fun setup() {
