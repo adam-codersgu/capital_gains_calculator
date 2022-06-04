@@ -22,7 +22,14 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
         printReportSummary(outstandingTransactions)
     }
 
-    // TODO - TEST ME
+    /**
+     * Prints a summary of any unprocessed transactions, and the total gain, loss and profit figures
+     * from all the transactions processed by the application.
+     *
+     * @param outstandingTransactions An OutstandingTransactions object containing lists of
+     * outstanding buy and sell transactions and the total profit and loss incurred from
+     * all transactions processed thus far,
+     */
     private fun printReportSummary(outstandingTransactions: OutstandingTransactions) {
         println()
         if (outstandingTransactions.sellTransactions.isNotEmpty() || outstandingTransactions.buyTransactions.isNotEmpty()) {
@@ -34,7 +41,7 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
             println()
         }
 
-        val gains = BigDecimal(outstandingTransactions.totalProfit).setScale(2, RoundingMode.HALF_EVEN).toString()
+        val gains = BigDecimal(outstandingTransactions.totalGains).setScale(2, RoundingMode.HALF_EVEN).toString()
         val losses = BigDecimal(outstandingTransactions.totalLoss).setScale(2, RoundingMode.HALF_EVEN).toString()
         val profits = BigDecimal(gains.toDouble() + losses.toDouble())
             .setScale(2, RoundingMode.HALF_EVEN).toString()

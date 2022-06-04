@@ -34,7 +34,7 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
         val profitOrLossRounded = BigDecimal(profitOrLoss)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         return if (profitOrLoss >= 0) {
-            outstandingTransactions.totalProfit += profitOrLoss
+            outstandingTransactions.totalGains += profitOrLoss
             "Profit = £$profitOrLossRounded."
         } else {
             outstandingTransactions.totalLoss += profitOrLoss

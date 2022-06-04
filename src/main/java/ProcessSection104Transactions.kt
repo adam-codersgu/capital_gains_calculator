@@ -163,7 +163,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         val profitOrLossSummary: String
         if (profitOrLoss >= 0) {
             profitOrLossSummary = "Profit = £$profitOrLossRounded."
-            outstandingTransactions.totalProfit += profitOrLoss
+            outstandingTransactions.totalGains += profitOrLoss
         } else {
             profitOrLossSummary = "Loss = £$profitOrLossRounded."
             outstandingTransactions.totalLoss += profitOrLoss
