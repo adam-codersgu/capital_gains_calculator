@@ -3,9 +3,11 @@ package model
 import java.time.LocalDate
 
 data class Transaction(
-    val transactionIDs: MutableList<String>,
+    val transactionIds: MutableList<String>,
     val date: LocalDate,
-    val direction: String,
+    val type: String,
     var quantity: Int,
-    var price: Double
+    var amount: Double,
+    // TODO: Note the default currency is assumed to be GBP
+    var currency: String = "GBP"
 )

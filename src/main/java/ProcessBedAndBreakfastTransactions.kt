@@ -29,8 +29,8 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
                     // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
                     // been modified during previous iterations.
                     reportBedAndBreakfastTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
-                        it.transactionIDs == sellTransaction.transactionIDs
-                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIDs))
+                        it.transactionIds == sellTransaction.transactionIds
+                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
                     quantityOfSharesToMatch -= buyTransaction.quantity
                 } else break
             }
@@ -46,10 +46,10 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      */
     private fun reportBedAndBreakfastTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
         val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +

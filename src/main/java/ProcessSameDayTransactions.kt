@@ -33,10 +33,10 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      */
     private fun reportSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
         val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val output = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val output = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
                 " shares were bought for an average price of $averageBuyPrice GBP and " +
                 sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +

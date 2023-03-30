@@ -27,8 +27,8 @@ class ProcessAcquisitionFollowingDisposalTransactions(outstandingTransactions: O
                     // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
                     // been modified during previous iterations.
                     reportAcquisitionFollowingDisposalTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
-                        it.transactionIDs == sellTransaction.transactionIDs
-                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIDs))
+                        it.transactionIds == sellTransaction.transactionIds
+                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
                     quantityOfSharesToMatch -= buyTransaction.quantity
                 } else break
             }
@@ -47,16 +47,16 @@ class ProcessAcquisitionFollowingDisposalTransactions(outstandingTransactions: O
     private fun reportAcquisitionFollowingDisposalTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
         // The date of the buy transaction must exceed the date of the sell transaction
         if (buyTransaction.date <= sellTransaction.date) {
-            println("Processing halted at buy transaction " + buyTransaction.transactionIDs +
-            " and sell transaction " + sellTransaction.transactionIDs)
+            println("Processing halted at buy transaction " + buyTransaction.transactionIds +
+            " and sell transaction " + sellTransaction.transactionIds)
             throw AcquisitionNotFollowingDisposalException()
         }
 
         val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val output = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val output = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
