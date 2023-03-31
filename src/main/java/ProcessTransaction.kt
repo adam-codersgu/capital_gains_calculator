@@ -54,21 +54,21 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
         when {
             // Quantity purchased and sold are equal
             sellTransaction.quantity == buyTransaction.quantity -> {
-                profitOrLoss = sellTransaction.price - buyTransaction.price
+                profitOrLoss = sellTransaction.amount - buyTransaction.amount
             }
             // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.price * percentageOfSoldSharesRemaining
-                profitOrLoss = valueOfSoldShares - buyTransaction.price
+                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
+                profitOrLoss = valueOfSoldShares - buyTransaction.amount
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
-                profitOrLoss = sellTransaction.price - valueOfPurchasedShares
+                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
+                profitOrLoss = sellTransaction.amount - valueOfPurchasedShares
             }
         }
         updateOutstandingTransactions(buyTransaction, sellTransaction)
@@ -93,20 +93,20 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
             sellTransaction.quantity > buyTransaction.quantity -> {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.price * percentageOfSoldSharesRemaining
+                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
                 val index = outstandingTransactions.sellTransactions.indexOf(sellTransaction)
                 outstandingTransactions.sellTransactions[index].quantity -= buyTransaction.quantity
-                outstandingTransactions.sellTransactions[index].price -= valueOfSoldShares
+                outstandingTransactions.sellTransactions[index].amount -= valueOfSoldShares
                 outstandingTransactions.buyTransactions.remove(buyTransaction)
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
                 val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
                         buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.price * percentageOfPurchasedSharesRemaining
+                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
                 val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
                 outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
-                outstandingTransactions.buyTransactions[index].price -= valueOfPurchasedShares
+                outstandingTransactions.buyTransactions[index].amount -= valueOfPurchasedShares
                 outstandingTransactions.sellTransactions.remove(sellTransaction)
             }
         }

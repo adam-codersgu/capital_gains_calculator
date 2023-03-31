@@ -35,27 +35,27 @@ class ProcessBedAndBreakfastTransactionsTest {
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(2),
             quantity = 25,
-            price = 467.20
+            amount = 467.20
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(3),
             quantity = 15,
-            price = 120.10
+            amount = 120.10
         )
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(1),
-            direction = "Sell"
+            type = "Sell"
         )
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
-            direction = "Sell",
+            type = "Sell",
             date = LocalDate.now().minusDays(3),
-            price = 485.23
+            amount = 485.23
         )
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
-            direction = "Sell",
+            type = "Sell",
             date = LocalDate.now().minusDays(5),
-            price = 102.04
+            amount = 102.04
         )
     }
 
@@ -92,7 +92,7 @@ class ProcessBedAndBreakfastTransactionsTest {
                     // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
                     // been modified during previous iterations.
                     assertNotNull(outstandingTransactions.sellTransactions.find {
-                        it.transactionIDs == sellTransaction.transactionIDs
+                        it.transactionIds == sellTransaction.transactionIds
                     })
                     quantityOfSharesToMatch -= buyTransaction.quantity
                 }
@@ -128,18 +128,18 @@ class ProcessBedAndBreakfastTransactionsTest {
         val sellTransaction = outstandingTransactions.sellTransactions[rowIndex].copy()
         val profitOrLossMessage = "Profit or loss message placeholder"
 
-        val expectedOutput = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val expectedOutput = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of " +
-                sellTransaction.price / sellTransaction.quantity + " GBP on " + sellTransaction.date +
+                sellTransaction.amount / sellTransaction.quantity + " GBP on " + sellTransaction.date +
                 " identified with " + buyTransaction.quantity + " shares bought on " + buyTransaction.date +
-                " for an average price of " + buyTransaction.price / buyTransaction.quantity +
+                " for an average price of " + buyTransaction.amount / buyTransaction.quantity +
                 " GBP. $profitOrLossMessage"
 
-        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +

@@ -35,7 +35,7 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(2),
             quantity = 25,
-            price = 467.20
+            amount = 467.20
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_2.copy(
             date = LocalDate.now().minusDays(5)
@@ -43,12 +43,12 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(1),
-            direction = "Sell"
+            type = "Sell"
         )
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
-            direction = "Sell",
+            type = "Sell",
             date = LocalDate.now().minusDays(3),
-            price = 485.23
+            amount = 485.23
         )
         private val SELL_TRANSACTION_3 = SELL_TRANSACTION_2.copy(
             date = LocalDate.now().minusDays(4)
@@ -100,7 +100,7 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
 
                 if (buyTransaction != null) {
                     assertNotNull(outstandingTransactions.sellTransactions.find {
-                        it.transactionIDs == sellTransaction.transactionIDs
+                        it.transactionIds == sellTransaction.transactionIds
                     })
                     val originalQuantityOfSharesToMatch = quantityOfSharesToMatch
                     quantityOfSharesToMatch -= buyTransaction.quantity
@@ -133,12 +133,12 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
         val sellTransaction = outstandingTransactions.sellTransactions[rowIndex].copy()
         val profitOrLossMessage = "Profit or loss message placeholder"
 
-        val expectedOutput = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val expectedOutput = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of " +
-                sellTransaction.price / sellTransaction.quantity + " GBP on " + sellTransaction.date +
+                sellTransaction.amount / sellTransaction.quantity + " GBP on " + sellTransaction.date +
                 " identified with " + buyTransaction.quantity + " shares bought on " + buyTransaction.date +
-                " for an average price of " + buyTransaction.price / buyTransaction.quantity +
+                " for an average price of " + buyTransaction.amount / buyTransaction.quantity +
                 " GBP. $profitOrLossMessage"
 
         // The date of the buy transaction must exceed the date of the sell transaction
@@ -155,10 +155,10 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
                 block = { reportAcquisitionFollowingDisposalTransaction(buyTransaction, sellTransaction) })
         }
 
-        val averageSellPrice = sellTransaction.price / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.price / buyTransaction.quantity
-        val output = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIDs +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIDs +
+        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val output = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIds +
+                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
                 "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +

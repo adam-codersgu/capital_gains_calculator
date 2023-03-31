@@ -10,7 +10,8 @@ import kotlin.system.exitProcess
  *
  * An application to help report stock transactions for an HMRC Capital Gains tax report.
  *
- * This application is designed for stock transactions completed using the broker DEGIRO.
+ * This application is designed for stock transactions completed using the broker DEGIRO
+ * where the base currency is GBP.
  *
  * This application is for personal use only.
  * This application is not authorised by, or affiliated with, HMRC or DEGIRO.
