@@ -62,8 +62,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
 
         for (row in sheet) {
-            // TODO: Test that processing continues to the remainder of the sheet, even if a blank
-            //  or non-date first column entry is encountered.
             val transactionDate = try {
                 LocalDate.parse(row.getCell(0).stringCellValue, formatter)
             } catch (_: DateTimeParseException) {
@@ -159,7 +157,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         fxTransactions.add(transaction)
     }
 
-    // TODO: TEST THIS -> Also do a test run of version 1 app and version 2. Compare output
     private fun mergeBuyTransactions(transactions: List<List<Transaction>>) {
         for (listOfTransactions in transactions) {
             val newTransaction = listOfTransactions[0].copy(
