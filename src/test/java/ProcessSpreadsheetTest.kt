@@ -1,5 +1,4 @@
 
-import jdk.nashorn.internal.ir.annotations.Ignore
 import mock.TestSpreadsheetRowData
 import mock.templates.SpreadsheetRow
 import model.Transaction
@@ -306,7 +305,6 @@ class ProcessSpreadsheetTest {
      */
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 2])
-    @Ignore
     fun getTransactionTypeTest(rowNumber: Int) {
         val testDataDescription = testData[rowNumber].description
         val testDataTransactionType = when (testDataDescription.take(4)) {

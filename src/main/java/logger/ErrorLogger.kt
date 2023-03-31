@@ -20,6 +20,8 @@ class ErrorLogger {
     fun printErrors() {
         if (errors.isEmpty()) return
 
+        println("\nErrors encountered during processing:")
+
         for (error in errors) {
             println(error)
         }

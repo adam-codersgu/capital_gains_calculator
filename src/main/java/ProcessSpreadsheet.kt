@@ -88,7 +88,12 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val sellTransactionsSharingId = sellTransactions.groupBy { it.transactionIds }.values.filter { it.size > 1 }
         mergeSellTransactions(sellTransactionsSharingId)
 
-        mergeFxTransactionsByTransactionId()
+        val fxCreditTransactions = fxTransactions.filter { it.type == "FX Credit" &&
+                !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
+        mergeFxTransactions(fxCreditTransactions)
+        val fxDebitTransactions = fxTransactions.filter { it.type == "FX Debit" &&
+                !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
+        mergeFxTransactions(fxDebitTransactions)
         integrateFxValuesForBuyTransactions()
         integrateFxValuesForSellTransactions()
 
@@ -185,17 +190,9 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         }
     }
 
-    private fun mergeFxTransactionsByTransactionId() {
-        val groupedTransactions = fxTransactions.groupBy {
-            it.transactionId
-        }
-        val transactionsSharingTransactionIds = groupedTransactions.values.filter {
-            it.size > 1 && !it[0].transactionId.isNullOrBlank()
-        }
-        for (listOfTransactions in transactionsSharingTransactionIds) {
-            val newTransaction = listOfTransactions[0].copy(
-                amount = 0.00
-            )
+    private fun mergeFxTransactions(transactions: List<List<FXTransaction>>) {
+        for (listOfTransactions in transactions) {
+            val newTransaction = listOfTransactions[0].copy(amount = 0.00)
             for (transaction in listOfTransactions) {
                 newTransaction.amount += transaction.amount
             }
@@ -209,16 +206,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
 
         for (transaction in foreignBuyTransactions) {
             fxTransactions.find {
-                transaction.transactionIds.contains(it.transactionId) &&
-                     it.type == "FX Debit"
+                it.transactionId == transaction.transactionIds[0] && it.type == "FX Debit"
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
                     amount = it.amount
                 )
-                buyTransactions.removeIf { transaction ->
-                    transaction.transactionIds.contains(it.transactionId) &&
-                            transaction.currency != DEFAULT_CURRENCY
+                buyTransactions.removeIf { t ->
+                    t.transactionIds.contains(it.transactionId) && t.currency != DEFAULT_CURRENCY
                 }
                 buyTransactions.add(newTransaction)
             }
