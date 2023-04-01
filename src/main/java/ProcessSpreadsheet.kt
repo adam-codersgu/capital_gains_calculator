@@ -1,5 +1,5 @@
-
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
+import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
 import logger.ErrorLogger
 import model.FXTransaction
 import model.Transaction
@@ -9,6 +9,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.io.FileInputStream
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -22,9 +24,11 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
     private val fxTransactions = mutableListOf<FXTransaction>()
+    private var transactionFees = 0.00
     private val errorLogger = ErrorLogger()
 
     private val fxTransactionDescriptions = listOf(
+        "DEGIRO Transaction and/or third party fees",
         "FX Credit",
         "FX Debit"
     )
@@ -35,9 +39,12 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val sheet = workbook.getSheetAt(0)
         outputAssetNameAndISIN(sheet.getRow(0))
         addTransactionsToLists(sheet)
+        // TODO: See if these print methods can be delegated to another class
         printNumberOfDisposals()
         ProcessTransactions(buyTransactions, sellTransactions)
+        printFees()
         errorLogger.printErrors()
+        println("\nProcessing complete")
     }
 
     /**
@@ -76,8 +83,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
             when (getTransactionType(transactionDescription)) {
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
+                "DEGIRO Transaction and/or third party fees" -> addTransactionFee(row)
                 "FX Credit" -> addFxCreditTransaction(row, transactionDate)
                 "FX Debit" -> addFxDebitTransaction(row, transactionDate)
+                else -> {
+                    errorLogger.rowSkipped(row.rowNum,
+                        UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
+                    continue
+                }
             }
         }
 
@@ -133,6 +146,22 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
             transactionDate, transactionType, transactionQuantity,
             transactionAmount, transactionCurrency)
         sellTransactions.add(transaction)
+    }
+
+    /**
+     * Add a transaction fee to the running fee total.
+     *
+     * @param row A spreadsheet row containing the details of the fee.
+     * @throw Exception if the transaction fee is reported in a currency other than the
+     * default currency.
+     */
+    private fun addTransactionFee(row: Row) {
+        if (getTransactionCurrency(row) != DEFAULT_CURRENCY) {
+            throw Exception("A transaction fee for an invalid currency was found on row "
+                + row.rowNum)
+        }
+
+        transactionFees += -row.getCell(8).numericCellValue
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
@@ -294,5 +323,11 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
             }
         }
         return quantity.toInt()
+    }
+
+    private fun printFees() {
+        val transactionFeesRounded = BigDecimal(transactionFees)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Transaction fees = £$transactionFeesRounded")
     }
 }
