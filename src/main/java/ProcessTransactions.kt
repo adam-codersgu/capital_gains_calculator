@@ -46,7 +46,6 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Total gains (excluding fees): £$gains \n" +
                 "Total losses (excluding fees): £$losses \n" +
-                "Profit (gains minus losses): £$profits \n" +
-                "Processing complete")
+                "Profit (gains minus losses): £$profits")
     }
 }

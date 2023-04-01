@@ -44,6 +44,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         ProcessTransactions(buyTransactions, sellTransactions)
         printFees()
         errorLogger.printErrors()
+        println("\nProcessing complete")
     }
 
     /**
