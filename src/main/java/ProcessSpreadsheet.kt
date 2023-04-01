@@ -1,4 +1,3 @@
-
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
 import logger.ErrorLogger
@@ -161,7 +160,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
                 + row.rowNum)
         }
 
-        transactionFees += row.getCell(8).numericCellValue
+        transactionFees += -row.getCell(8).numericCellValue
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
