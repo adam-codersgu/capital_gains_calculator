@@ -1,4 +1,4 @@
-
+import ui.ExistingSection104
 import java.io.File
 import javax.swing.JFileChooser
 import javax.swing.JFrame
@@ -51,6 +51,7 @@ fun openFileChooserDialogWindow() {
     val result = fileChooser.showOpenDialog(frame)
     if (result == JFileChooser.APPROVE_OPTION) {
         val file = fileChooser.selectedFile
+        ExistingSection104.openDialog()
         ProcessSpreadsheet(file.absolutePath)
     }
     exitProcess(0)
