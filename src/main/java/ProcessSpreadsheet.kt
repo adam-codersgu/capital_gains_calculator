@@ -2,6 +2,7 @@ import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
 import logger.ErrorLogger
 import model.FXTransaction
+import model.Section104
 import model.Transaction
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.xssf.usermodel.XSSFRow
@@ -15,7 +16,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, existingSection104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"

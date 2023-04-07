@@ -5,9 +5,10 @@ import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-class ProcessSection104Transactions(outstandingTransactions: OutstandingTransactions) : ProcessTransaction(outstandingTransactions) {
+class ProcessSection104Transactions(outstandingTransactions: OutstandingTransactions,
+                                    existingSection104: Section104) : ProcessTransaction(outstandingTransactions) {
 
-    private var section104 = Section104()
+    private val section104: Section104 = Section104()
 
     /**
      * Match all disposals with previously purchased stock (the Section 104 holding).
