@@ -15,8 +15,9 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String, existingSection104: Section104) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
@@ -42,10 +43,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, existingSection104: Se
         addTransactionsToLists(sheet)
         // TODO: See if these print methods can be delegated to another class
         printNumberOfDisposals()
-        ProcessTransactions(buyTransactions, sellTransactions)
+        ProcessTransactions(buyTransactions, sellTransactions, section104)
         printFees()
         errorLogger.printErrors()
-        println("\nProcessing complete")
+        processingComplete()
     }
 
     /**
@@ -330,5 +331,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, existingSection104: Se
         val transactionFeesRounded = BigDecimal(transactionFees)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Transaction fees = £$transactionFeesRounded")
+    }
+
+    private fun processingComplete() {
+        println("\nProcessing complete")
+        exitProcess(0)
     }
 }

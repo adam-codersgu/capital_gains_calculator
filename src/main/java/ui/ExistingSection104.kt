@@ -1,5 +1,6 @@
 package ui
 
+import ProcessSpreadsheet
 import model.Section104
 import java.awt.FlowLayout
 import java.awt.Font
@@ -61,8 +62,7 @@ object ExistingSection104 {
                 else "${section104.quantity} shares"
                 println("The pre-existing Section 104 holding consisted of $quantityMessage " +
                         "purchase at an average price of £${section104.price}")
-                // exitProcess(0) // fixme
-                // fixme ProcessSpreadsheet(file.absolutePath)
+                ProcessSpreadsheet(file.absolutePath, section104)
             }
         }
 

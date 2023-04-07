@@ -53,5 +53,4 @@ fun openFileChooserDialogWindow() {
         val file = fileChooser.selectedFile
         ExistingSection104.openDialog(file)
     }
-    // exitProcess(0)
 }

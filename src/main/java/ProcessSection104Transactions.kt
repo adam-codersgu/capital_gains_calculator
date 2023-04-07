@@ -6,9 +6,8 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 class ProcessSection104Transactions(outstandingTransactions: OutstandingTransactions,
-                                    existingSection104: Section104) : ProcessTransaction(outstandingTransactions) {
-
-    private val section104: Section104 = Section104()
+                                    private val section104: Section104 = Section104())
+    : ProcessTransaction(outstandingTransactions) {
 
     /**
      * Match all disposals with previously purchased stock (the Section 104 holding).
@@ -148,7 +147,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         section104.price -= totalPurchasePrice
 
         // If all shares in the Section 104 holding have been sold, then reset the Section104 object
-        if (section104.quantity == 0) section104 = Section104()
+        if (section104.quantity == 0) section104.clear()
     }
 
     /**
