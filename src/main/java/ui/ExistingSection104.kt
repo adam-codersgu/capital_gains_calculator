@@ -56,12 +56,13 @@ object ExistingSection104 {
                 // TODO What happens if you get invalid input e.g. String instead of Long
                 val quantity = (quantityInput.value as Number).toInt()
                 val averagePurchasePrice = (averagePurchasePriceInput.value as Number).toDouble()
-                val section104 = Section104(quantity = quantity, price = averagePurchasePrice)
+                val section104Price = quantity * averagePurchasePrice
+                val section104 = Section104(quantity = quantity, price = section104Price)
 
                 val quantityMessage = if (section104.quantity == 1) "1 share"
                 else "${section104.quantity} shares"
                 println("The pre-existing Section 104 holding consisted of $quantityMessage " +
-                        "purchase at an average price of £${section104.price}")
+                        "purchase at an average price of £$averagePurchasePrice")
                 ProcessSpreadsheet(file.absolutePath, section104)
             }
         }
