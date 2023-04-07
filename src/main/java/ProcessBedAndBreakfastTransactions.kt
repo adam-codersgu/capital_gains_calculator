@@ -48,9 +48,10 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
         val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
         val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
         val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
-        val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
-                ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
+
+        val output = "BED AND BREAKFAST Sell ${sellTransaction.getTransactionIdsMessage()} " +
+                "identified with buy ${buyTransaction.getTransactionIdsMessage()}. " +
+                sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
                 " GBP. $profitOrLossMessage"
