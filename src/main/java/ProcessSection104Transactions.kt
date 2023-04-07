@@ -59,8 +59,8 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         section104.price += buyTransaction.amount
         val output = "SECTION 104 " + buyTransaction.quantity + " shares priced at " +
                 buyTransaction.amount / buyTransaction.quantity + " GBP added to the " +
-                "Section 104 holding on " + buyTransaction.date + " (transaction ID(s) " +
-                buyTransaction.transactionIds + ")"
+                "Section 104 holding on " + buyTransaction.date +
+                " (${buyTransaction.getTransactionIdsMessage()})"
         println(output)
     }
 
@@ -125,8 +125,8 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         val averageDisposalPrice = sellTransaction.amount / sellTransaction.quantity
         val averagePurchasePrice = section104.price / section104.quantity
 
-        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell transaction (ID(s) " +
-                sellTransaction.transactionIds + ") dated " + sellTransaction.date + " identified with " +
+        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell " +
+                sellTransaction.getTransactionIdsMessage() + " dated " + sellTransaction.date + " identified with " +
                 "the Section 104 holding. The average price of the sold shares was $averageDisposalPrice GBP, " +
                 "and the average price of the shares in the Section 104 holding was $averagePurchasePrice GBP. "
 
