@@ -1,10 +1,12 @@
 
 import model.OutstandingTransactions
+import model.Section104
 import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransactions: List<Transaction>) {
+class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransactions: List<Transaction>,
+                          existingSection104: Section104) {
 
     init {
         buyTransactions = buyTransactions.sortedBy { it.date }
@@ -16,7 +18,7 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
 
         outstandingTransactions = ProcessSameDayTransactions(outstandingTransactions).process()
         outstandingTransactions = ProcessBedAndBreakfastTransactions(outstandingTransactions).process()
-        outstandingTransactions = ProcessSection104Transactions(outstandingTransactions).process()
+        outstandingTransactions = ProcessSection104Transactions(outstandingTransactions, existingSection104).process()
         outstandingTransactions = ProcessAcquisitionFollowingDisposalTransactions(outstandingTransactions).process()
         printReportSummary(outstandingTransactions)
     }

@@ -1,10 +1,11 @@
+
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
 import logger.ErrorLogger
 import model.FXTransaction
+import model.Section104
 import model.Transaction
 import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.xssf.usermodel.XSSFRow
 import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
@@ -14,8 +15,9 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
@@ -37,25 +39,40 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val file = FileInputStream(File(spreadsheetFileLocation))
         val workbook = XSSFWorkbook(file)
         val sheet = workbook.getSheetAt(0)
-        outputAssetNameAndISIN(sheet.getRow(0))
+        outputAssetNameAndISIN(sheet)
         addTransactionsToLists(sheet)
         // TODO: See if these print methods can be delegated to another class
         printNumberOfDisposals()
-        ProcessTransactions(buyTransactions, sellTransactions)
+        ProcessTransactions(buyTransactions, sellTransactions, section104)
         printFees()
         errorLogger.printErrors()
-        println("\nProcessing complete")
+        processingComplete()
     }
 
     /**
      * Prints the asset's name and ISIN to the console. Used to indicate which asset
      * the report is about.
      *
-     * @param row an XSSFRow that contains columns for the asset's name and ISIN
+     * @param sheet an XSSFSheet that contains the columns for the asset's name and ISIN
      */
-    private fun outputAssetNameAndISIN(row: XSSFRow) {
-        val assetName = row.getCell(3).stringCellValue
-        val assetISIN = row.getCell(4).stringCellValue
+    private fun outputAssetNameAndISIN(sheet: XSSFSheet) {
+        var i = 0
+        var assetISIN = "Unknown ISIN"
+        var assetName = "Unknown asset name"
+        do {
+            val row = sheet.getRow(i) ?: break
+            val isin = row.getCell(4).stringCellValue
+            if (isin.isNotBlank() && isin != "ISIN") {
+                assetISIN = isin
+            }
+            val name = row.getCell(3).stringCellValue
+            if (name.isNotBlank() && name != "Product") {
+                assetName = name
+            }
+            ++i
+        } while (isin.isBlank() || isin == "ISIN" || name.isBlank() ||
+                name == "Product")
+
         println("--- $assetName --- ISIN: $assetISIN ---\n")
     }
 
@@ -329,5 +346,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String) {
         val transactionFeesRounded = BigDecimal(transactionFees)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Transaction fees = £$transactionFeesRounded")
+    }
+
+    private fun processingComplete() {
+        println("\nProcessing complete")
+        exitProcess(0)
     }
 }
