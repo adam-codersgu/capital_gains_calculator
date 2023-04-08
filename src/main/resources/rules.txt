@@ -34,3 +34,33 @@ Against shares in a Section 104 holding, but without identifying any particular 
 Finally against acquisitions following the disposal (and not already identified under stage 2 above), taking the earliest acquisition first, TCGA92/S105(2).
 
 Note that in relation to disposals after 5 April 2008 TCGA92/S105(3) and TCGA92/S106A(5ZA) make it clear that shares identified in accordance with points 1 & 2 above do not enter the S104 holding.
+
+Capital Gains Tax: share reorganisation, takeover or merger https://www.gov.uk/guidance/capital-gains-tax-share-reorganisation-takeover-or-merger#company-share-reorganisations
+Company share reorganisations
+Companies may reorganise shares in the following ways:
+
+make bonus issues - new free shares are issued
+make rights issues - new shares are issued and you usually have to pay something for them
+reorganise the value of shares - for example where they replace 10x5p shares with 1x50p share
+When the company replaces your shares with new shares you’re not treated as if you’ve sold or disposed of them for Capital Gains Tax purposes.
+
+If you sell or dispose of part of your reorganised shares you must use these rules to work out the cost of the shares you’ve sold.
+
+Bonus and rights issues of shares of the same class
+Work out the cost of your shares if you:
+
+sell or dispose of some shares in the same company of the same class
+got the shares following a company reorganisation as a bonus or rights issue
+Work out the total cost:
+
+combine the cost of your shares
+add together any amount you paid for the new shares and the cost of the old shares you already held
+Work out the cost of the shares sold:
+
+the proportion of the total shares you’ve sold
+the same proportion of the total combined cost
+There’s one exception to this. You’ve bought more shares of the same class in the same company on the day of the sale or in the next 30 days. In this case you’re treated as if you sold the shares bought:
+
+on the same day first
+in the next 30 days next
+Use their actual costs. You then follow the steps above for any remaining shares sold.
