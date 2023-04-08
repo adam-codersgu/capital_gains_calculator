@@ -41,12 +41,9 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         val sheet = workbook.getSheetAt(0)
         outputAssetNameAndISIN(sheet)
         addTransactionsToLists(sheet)
-        // TODO: See if these print methods can be delegated to another class
-        printNumberOfDisposals()
         ProcessTransactions(buyTransactions, sellTransactions, section104)
-        printFees()
-        errorLogger.printErrors()
-        processingComplete()
+        // TODO: See if these print methods can be delegated to another class
+        printReportSummary()
     }
 
     /**
@@ -298,8 +295,27 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         }
     }
 
-    /** Prints the total number of disposals of the asset to the console. */
-    private fun printNumberOfDisposals() = println("Number of disposals: " + sellTransactions.size)
+    /**
+     * Prints information about the report including the total number of disposals, total
+     * purchase costs, total disposal proceeds and incurred fees.
+     */
+    private fun printReportSummary() {
+        println("Number of disposals: " + sellTransactions.size)
+        // TODO Delegate this BigDecimal conversion to a utility method
+        val transactionFeesRounded = BigDecimal(transactionFees)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Transaction fees = £$transactionFeesRounded")
+        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.amount })
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Disposal proceeds: £$disposalProceeds")
+        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount })
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Purchase costs: £$purchaseCosts")
+
+        errorLogger.printErrors()
+        println("\nProcessing complete")
+        exitProcess(0)
+    }
 
     /**
      * Extracts the transaction type for a given spreadsheet row.
@@ -340,16 +356,5 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
             }
         }
         return quantity.toInt()
-    }
-
-    private fun printFees() {
-        val transactionFeesRounded = BigDecimal(transactionFees)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Transaction fees = £$transactionFeesRounded")
-    }
-
-    private fun processingComplete() {
-        println("\nProcessing complete")
-        exitProcess(0)
     }
 }

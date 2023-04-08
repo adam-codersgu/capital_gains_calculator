@@ -62,7 +62,7 @@ object ExistingSection104 {
                 val quantityMessage = if (section104.quantity == 1) "1 share"
                 else "${section104.quantity} shares"
                 println("The pre-existing Section 104 holding consisted of $quantityMessage " +
-                        "purchase at an average price of £$averagePurchasePrice")
+                        "purchased at an average price of £$averagePurchasePrice")
                 ProcessSpreadsheet(file.absolutePath, section104)
             }
         }
