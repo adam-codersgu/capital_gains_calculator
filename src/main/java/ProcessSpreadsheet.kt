@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
@@ -41,9 +41,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         val sheet = workbook.getSheetAt(0)
         outputAssetNameAndISIN(sheet)
         addTransactionsToLists(sheet)
-        ProcessTransactions(buyTransactions, sellTransactions, section104)
         // TODO: See if these print methods can be delegated to another class
         printReportSummary()
+        ProcessTransactions(buyTransactions, sellTransactions, section104)
+        finishProcessing()
     }
 
     /**
@@ -207,9 +208,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
                 amount = 0.00
             )
             for (transaction in listOfTransactions) {
+                newTransaction.transactionIds.addAll(transaction.transactionIds)
                 newTransaction.quantity += transaction.quantity
                 newTransaction.amount += transaction.amount
             }
+            val distinctTransactionIds = newTransaction.transactionIds.toSet()
+            newTransaction.transactionIds.clear()
+            newTransaction.transactionIds.addAll(distinctTransactionIds)
             buyTransactions.removeAll(listOfTransactions)
             buyTransactions.add(newTransaction)
         }
@@ -222,9 +227,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
                 amount = 0.00
             )
             for (transaction in listOfTransactions) {
+                newTransaction.transactionIds.addAll(transaction.transactionIds)
                 newTransaction.quantity += transaction.quantity
                 newTransaction.amount += transaction.amount
             }
+            val distinctTransactionIds = newTransaction.transactionIds.toSet()
+            newTransaction.transactionIds.clear()
+            newTransaction.transactionIds.addAll(distinctTransactionIds)
             sellTransactions.removeAll(listOfTransactions)
             sellTransactions.add(newTransaction)
         }
@@ -308,13 +317,9 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.amount })
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Disposal proceeds: £$disposalProceeds")
-        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount })
+        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount } + section104.price)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Purchase costs: £$purchaseCosts")
-
-        errorLogger.printErrors()
-        println("\nProcessing complete")
-        exitProcess(0)
+        println("Purchase costs: £$purchaseCosts\n")
     }
 
     /**
@@ -356,5 +361,11 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
             }
         }
         return quantity.toInt()
+    }
+
+    private fun finishProcessing() {
+        errorLogger.printErrors()
+        println("\nProcessing complete")
+        exitProcess(0)
     }
 }
