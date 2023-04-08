@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
@@ -42,11 +42,9 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         outputAssetNameAndISIN(sheet)
         addTransactionsToLists(sheet)
         // TODO: See if these print methods can be delegated to another class
-        printNumberOfDisposals()
+        printReportSummary()
         ProcessTransactions(buyTransactions, sellTransactions, section104)
-        printFees()
-        errorLogger.printErrors()
-        processingComplete()
+        finishProcessing()
     }
 
     /**
@@ -210,9 +208,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
                 amount = 0.00
             )
             for (transaction in listOfTransactions) {
+                newTransaction.transactionIds.addAll(transaction.transactionIds)
                 newTransaction.quantity += transaction.quantity
                 newTransaction.amount += transaction.amount
             }
+            val distinctTransactionIds = newTransaction.transactionIds.toSet()
+            newTransaction.transactionIds.clear()
+            newTransaction.transactionIds.addAll(distinctTransactionIds)
             buyTransactions.removeAll(listOfTransactions)
             buyTransactions.add(newTransaction)
         }
@@ -225,9 +227,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
                 amount = 0.00
             )
             for (transaction in listOfTransactions) {
+                newTransaction.transactionIds.addAll(transaction.transactionIds)
                 newTransaction.quantity += transaction.quantity
                 newTransaction.amount += transaction.amount
             }
+            val distinctTransactionIds = newTransaction.transactionIds.toSet()
+            newTransaction.transactionIds.clear()
+            newTransaction.transactionIds.addAll(distinctTransactionIds)
             sellTransactions.removeAll(listOfTransactions)
             sellTransactions.add(newTransaction)
         }
@@ -298,8 +304,23 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         }
     }
 
-    /** Prints the total number of disposals of the asset to the console. */
-    private fun printNumberOfDisposals() = println("Number of disposals: " + sellTransactions.size)
+    /**
+     * Prints information about the report including the total number of disposals, total
+     * purchase costs, total disposal proceeds and incurred fees.
+     */
+    private fun printReportSummary() {
+        println("Number of disposals: " + sellTransactions.size)
+        // TODO Delegate this BigDecimal conversion to a utility method
+        val transactionFeesRounded = BigDecimal(transactionFees)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Transaction fees = £$transactionFeesRounded")
+        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.amount })
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Disposal proceeds: £$disposalProceeds")
+        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount } + section104.price)
+            .setScale(2, RoundingMode.HALF_EVEN).toString()
+        println("Purchase costs: £$purchaseCosts\n")
+    }
 
     /**
      * Extracts the transaction type for a given spreadsheet row.
@@ -342,13 +363,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, section104: Section104
         return quantity.toInt()
     }
 
-    private fun printFees() {
-        val transactionFeesRounded = BigDecimal(transactionFees)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Transaction fees = £$transactionFeesRounded")
-    }
-
-    private fun processingComplete() {
+    private fun finishProcessing() {
+        errorLogger.printErrors()
         println("\nProcessing complete")
         exitProcess(0)
     }
