@@ -2,7 +2,8 @@
 import model.OutstandingTransactions
 import model.Transaction
 
-class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTransactions) : ProcessTransaction(outstandingTransactions) {
+class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTransactions)
+    : ProcessTransaction(outstandingTransactions) {
 
     /**
      * Match all purchases that occurred up to 30 days following a disposal (Bed and Breakfast rule).
@@ -15,22 +16,21 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      */
     override fun process(): OutstandingTransactions {
         for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
-            // Look for any suitable buy transactions that occurred up to 30 days
-            // after the disposal.
+            // Look for buy transactions that occurred up to 30 days following the disposal.
             val maxDate = sellTransaction.date.plusDays(31)
 
             var quantityOfSharesToMatch = sellTransaction.quantity
             while (quantityOfSharesToMatch > 0) {
                 val buyTransaction = outstandingTransactions.buyTransactions.find {
                     it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
-                }
+                }?.copy()
 
                 if (buyTransaction != null) {
                     // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
                     // been modified during previous iterations.
                     reportBedAndBreakfastTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
                         it.transactionIds == sellTransaction.transactionIds
-                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
+                    }?.copy() ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
                     quantityOfSharesToMatch -= buyTransaction.quantity
                 } else break
             }
@@ -49,9 +49,12 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
         val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
         val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
 
+        val soldQuantity = if (sellTransaction.quantity >= buyTransaction.quantity) buyTransaction.quantity
+        else sellTransaction.quantity
+
         val output = "BED AND BREAKFAST Sell ${sellTransaction.getTransactionIdsMessage()} " +
                 "identified with buy ${buyTransaction.getTransactionIdsMessage()}. " +
-                sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
+                "$soldQuantity shares sold for an average price of $averageSellPrice" +
                 " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
                 " GBP. $profitOrLossMessage"

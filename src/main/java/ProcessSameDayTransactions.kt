@@ -18,9 +18,10 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
         for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
             val buyTransaction = outstandingTransactions.buyTransactions.find {
                 it.date == sellTransaction.date
-            }
+            }?.copy()
+
             // A buy transaction occurred on the same day as the sell transaction
-            if (buyTransaction != null) reportSameDayTransaction(buyTransaction, sellTransaction)
+            if (buyTransaction != null) reportSameDayTransaction(buyTransaction, sellTransaction.copy())
         }
         return outstandingTransactions
     }
@@ -35,6 +36,7 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
         val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
         val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
         val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+
         val output = "SAME DAY Sell ${sellTransaction.getTransactionIdsMessage()} " +
                 "identified with buy ${buyTransaction.getTransactionIdsMessage()} " +
                 "on " + buyTransaction.date + ". " + buyTransaction.quantity +

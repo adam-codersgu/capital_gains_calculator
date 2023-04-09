@@ -4,13 +4,7 @@ import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactions) {
-
-    val outstandingTransactions: OutstandingTransactions
-
-    init {
-        this.outstandingTransactions = outstandingTransactions
-    }
+abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransactions) {
 
     /**
      * Process a given transaction.
@@ -51,11 +45,9 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
     private fun calculateProfitLoss(buyTransaction: Transaction, sellTransaction: Transaction): Double {
         val profitOrLoss: Double
         when {
-            // Quantity purchased and sold are equal
             sellTransaction.quantity == buyTransaction.quantity -> {
                 profitOrLoss = sellTransaction.amount - buyTransaction.amount
             }
-            // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
@@ -83,12 +75,10 @@ abstract class ProcessTransaction(outstandingTransactions: OutstandingTransactio
      */
     private fun updateOutstandingTransactions(buyTransaction: Transaction, sellTransaction: Transaction) {
         when {
-            // Quantity purchased and sold are equal
             sellTransaction.quantity == buyTransaction.quantity -> {
                 outstandingTransactions.buyTransactions.remove(buyTransaction)
                 outstandingTransactions.sellTransactions.remove(sellTransaction)
             }
-            // Quantity sold is greater than the quantity purchased
             sellTransaction.quantity > buyTransaction.quantity -> {
                 val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
                         sellTransaction.quantity.toDouble()
