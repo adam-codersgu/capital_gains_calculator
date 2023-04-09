@@ -64,3 +64,7 @@ There’s one exception to this. You’ve bought more shares of the same class i
 on the same day first
 in the next 30 days next
 Use their actual costs. You then follow the steps above for any remaining shares sold.
+
+CG50203 - Definitions: different classes of share
+https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg50203
+A stock exchange lists shares or securities of the same class in a single listing. It is a question of fact whether the rules of a recognised stock exchange would list different types of share separately. If the shares are listed on a recognised stock exchange you should follow the practice of that stock exchange. If the shares are not listed you will need to consider the terms of the shares and apply stock exchange criteria to them. As a general rule, a stock exchange will treat shares as being of different classes, and list them separately, if they have different rights or other features which would affect their value. For example, partly paid shares would not be regarded as being of the same class as fully paid shares, see CG50207+. However, also see CG50207 if the balance of the subscription price is payable within six months of the issue of the shares.
