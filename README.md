@@ -11,7 +11,7 @@ The accuracy of the application's output cannot be guaranteed, and the developer
 
 ## Technical specifications
 
-Kotlin v1.6.21
+Kotlin v1.8.20
 Java v17.0.2
 Maven framework build
 
@@ -19,14 +19,6 @@ IntelliJ IDEA 2021.3.3 (Community Edition)
 Build #IC-213.7172.25, built on March 15, 2022
 Runtime version: 11.0.14.1+1-b1751.46 amd64
 VM: OpenJDK 64-Bit Server VM by JetBrains s.r.o.
-Windows 10 10.0
-GC: G1 Young Generation, G1 Old Generation
-Memory: 1014M
-Cores: 4
-Non-Bundled Plugins:
-org.jetbrains.kotlin (213-1.6.21-release-334-IJ6777.52)
-
-Kotlin: 213-1.6.21-release-334-IJ6777.52
 
 ## Instructions
 
@@ -41,19 +33,24 @@ Kotlin: 213-1.6.21-release-334-IJ6777.52
 
 ![Example Stock Transactions](images/example_stock_transactions.png "Example Stock Transactions")
 
-6. Run the application in an IDE such as IntelliJ. Note you may need to install the application using Maven to acquire the requisite dependencies. You may also need to specify that the application will run using Java 17 and Kotlin 1.6.21 (full technical specifications are provided above).
+6. Run the application in an IDE such as IntelliJ. Note you may need to install the application using Maven to acquire the requisite dependencies. You may also need to specify that the application will run using Java 17 and Kotlin 1.8.20.
 7. A file chooser dialog should open. Navigate to, and select, the spreadsheet file containing the buy and sell transactions for your chosen stock. **N.B. The spreadsheet must have a file extension of .xls or .xlsx**
 
 ![Select Spreadsheet](images/select_spreadsheet.png "Select Spreadsheet")
 
-8. The application will process the spreadsheet and match the transactions according to HMRC's guidelines. According to HMRC, stock disposals should be matched in the following order of priority:
+8. A second dialog window will open inviting you to enter the details of an existing Section 104 holding for the stock. For example, you may hold shares of the company that were purchased in previous tax years. Enter the quantity of shares held at the beginning of the tax year and the average purchase price of those shares. If no shares were held at the beginning of the tax year, then leave the values at 0. Next, press Submit.
+
+![Enter existing Section 104 holding](images/enter_existing_section_104_holding.png "Enter existing Section 104 holding")
+
+9. The application will process the spreadsheet and match the transactions according to HMRC's guidelines. According to HMRC, stock disposals should be matched in the following order of priority:
    1. Same day transactions (Shares in the same company that are sold and purchased on the same day should be matched)
    2. Bed and breakfast transactions (Disposed shares should be matched with shares that are purchased in the following 30 days)
    3. Section 104 transactions (Disposed shares should be matched with existing shares in the person's holdings)
    4. If none of the above rules apply, then disposals should be matched with shares purchased following the disposal. For example, this step could be applicable to the closure of a short position.
    5. Refer to the console output to see how the transactions are matched.
+   6. Any errors encountered during processing (including spreadsheet rows that were skipped) will be printed at the end of the console report. Check the list of errors to ensure there is nothing out of the ordinary.
 
 ![Application Console Output](images/application_console_output.png "Application Console Output")
 
-9. The console output also includes other figures that should be useful for the capital gains report including the number of disposals, total gains, total losses and overall profit (or loss).
-10. Repeat steps 4-9 for each remaining stock.
+10. The console output also includes other figures that should be useful for the capital gains report including the number of disposals, total gains, total losses, overall profit (or loss), transaction fees, net disposals and net proceeds.
+11. Repeat steps 4-10 for each remaining stock.

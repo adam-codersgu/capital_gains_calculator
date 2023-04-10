@@ -6,7 +6,7 @@ import javax.swing.JFrame
 import javax.swing.filechooser.FileNameExtensionFilter
 
 /**
- * @author Adam Hawke
+ * @author Adam Hawke (adam-codersgu)
  *
  * An application to help report stock transactions for an HMRC Capital Gains tax report.
  *
@@ -19,12 +19,6 @@ import javax.swing.filechooser.FileNameExtensionFilter
  * This application's output is for reference purposes only. Use at your own discretion.
  * The accuracy of the application's output cannot be guaranteed, and the developer accepts
  * no responsibility for the use of the application's output in any circumstances, including tax returns.
- *
- * Instructions:
- *
- *  - Export account statement from DEGIRO
- *  - Isolate a given assets transactions (buy + sell) in a separate spreadsheet
- *  - Run the spreadsheet through the application and refer to the console output for a report
  *
  */
 
