@@ -1,13 +1,13 @@
 
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
-import logger.ErrorLogger
 import model.FXTransaction
 import model.Section104
 import model.Transaction
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import util.ErrorLogger
 import java.io.File
 import java.io.FileInputStream
 import java.math.BigDecimal
@@ -95,6 +95,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
             // TODO: Note foreign currency dividends can't be processed (I don't think)
             //  Print a warning to the console about dividends in foreign currencies?
+            //  15/09/2023 Dividend functionality should not be enabled at all.
             when (getTransactionType(transactionDescription)) {
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
@@ -144,7 +145,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         val transactionCurrency = getTransactionCurrency(row)
 
         val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity,
+            transactionDate, transactionType, transactionQuantity, transactionQuantity,
             transactionAmount, transactionCurrency)
         buyTransactions.add(transaction)
     }
@@ -158,7 +159,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         val transactionCurrency = getTransactionCurrency(row)
 
         val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity,
+            transactionDate, transactionType, transactionQuantity, transactionQuantity,
             transactionAmount, transactionCurrency)
         sellTransactions.add(transaction)
     }
@@ -202,50 +203,45 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
     }
 
     private fun mergeBuyTransactions(transactions: List<List<Transaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(
-                quantity = 0,
-                amount = 0.00
-            )
-            for (transaction in listOfTransactions) {
-                newTransaction.transactionIds.addAll(transaction.transactionIds)
-                newTransaction.quantity += transaction.quantity
-                newTransaction.amount += transaction.amount
-            }
-            val distinctTransactionIds = newTransaction.transactionIds.toSet()
-            newTransaction.transactionIds.clear()
-            newTransaction.transactionIds.addAll(distinctTransactionIds)
-            buyTransactions.removeAll(listOfTransactions)
-            buyTransactions.add(newTransaction)
+        for (transactionsToMerge in transactions) {
+            buyTransactions.removeAll(transactionsToMerge)
+            buyTransactions.add(mergeTransactions(transactionsToMerge))
         }
     }
 
     private fun mergeSellTransactions(transactions: List<List<Transaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(
-                quantity = 0,
-                amount = 0.00
-            )
-            for (transaction in listOfTransactions) {
-                newTransaction.transactionIds.addAll(transaction.transactionIds)
-                newTransaction.quantity += transaction.quantity
-                newTransaction.amount += transaction.amount
-            }
-            val distinctTransactionIds = newTransaction.transactionIds.toSet()
-            newTransaction.transactionIds.clear()
-            newTransaction.transactionIds.addAll(distinctTransactionIds)
-            sellTransactions.removeAll(listOfTransactions)
-            sellTransactions.add(newTransaction)
+        for (transactionsToMerge in transactions) {
+            sellTransactions.removeAll(transactionsToMerge)
+            sellTransactions.add(mergeTransactions(transactionsToMerge))
         }
     }
 
+    private fun mergeTransactions(transactionsToMerge: List<Transaction>): Transaction {
+        val newTransaction = transactionsToMerge[0].copy(
+            transactionIds = mutableListOf(),
+            initialQuantity = transactionsToMerge.sumOf { it.initialQuantity },
+            unmatchedQuantity = transactionsToMerge.sumOf { it.unmatchedQuantity },
+            amount = transactionsToMerge.sumOf { it.amount }
+        )
+
+        if (newTransaction.initialQuantity != newTransaction.unmatchedQuantity) {
+            throw IllegalStateException("The initial quantity and unmatched quantity of the merged transaction" +
+                    "do not match: $newTransaction")
+        }
+
+        val transactionIds = mutableListOf<String>()
+        transactionsToMerge.forEach {
+            transactionIds.addAll(it.transactionIds)
+        }
+
+        newTransaction.transactionIds.addAll(transactionIds.toSet())
+        return newTransaction
+    }
+
     private fun mergeFxTransactions(transactions: List<List<FXTransaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(amount = 0.00)
-            for (transaction in listOfTransactions) {
-                newTransaction.amount += transaction.amount
-            }
-            fxTransactions.removeAll(listOfTransactions)
+        for (transactionsToMerge in transactions) {
+            val newTransaction = transactionsToMerge[0].copy(amount = transactionsToMerge.sumOf { it.amount })
+            fxTransactions.removeAll(transactionsToMerge)
             fxTransactions.add(newTransaction)
         }
     }
