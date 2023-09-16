@@ -14,10 +14,8 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * and lists of outstanding Buy and Sell Transaction objects after all same day
      * transactions have been processed.
      */
-    override
-    fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
-            // Check if a buy transaction occurred on the same day as the sell transaction
+    override fun process(): OutstandingTransactions {
+        for (sellTransaction in outstandingTransactions.sellTransactions) {
             outstandingTransactions.buyTransactions.find {
                 it.date == sellTransaction.date
             }?.let { buyTransaction ->
@@ -34,12 +32,6 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * @param sellTransaction The Transaction object associated with the sales for a given day
      */
     private fun reportSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        println("SAME DAY - " + getProportionOfUnitsSoldMessage(buyTransaction, sellTransaction) +
-                " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() +
-                " were identified with " + getProportionOfUnitsBoughtMessage(buyTransaction, sellTransaction) +
-                " units bought on " + buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit" +
-                " price of the purchased shares was " + buyTransaction.getAverageUnitPrice() + " GBP and the" +
-                " average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
-                " GBP. " + super.getProfitOrLossMessage(buyTransaction, sellTransaction))
+        println("SAME DAY - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

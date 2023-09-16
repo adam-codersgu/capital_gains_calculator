@@ -15,24 +15,18 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
+        for (sellTransaction in outstandingTransactions.sellTransactions) {
             // Look for buy transactions that occurred up to 30 days following the disposal.
             val maxDate = sellTransaction.date.plusDays(31)
 
-            var quantityOfSharesToMatch = sellTransaction.quantity
+            var quantityOfSharesToMatch = sellTransaction.remainingQuantity
             while (quantityOfSharesToMatch > 0) {
                 val buyTransaction = outstandingTransactions.buyTransactions.find {
                     it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
-                }?.copy()
+                } ?: break
 
-                if (buyTransaction != null) {
-                    // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
-                    // been modified during previous iterations.
-                    reportBedAndBreakfastTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
-                        it.transactionIds == sellTransaction.transactionIds
-                    }?.copy() ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
-                    quantityOfSharesToMatch -= buyTransaction.quantity
-                } else break
+                reportBedAndBreakfastTransaction(buyTransaction.copy(), sellTransaction.copy())
+                quantityOfSharesToMatch -= buyTransaction.remainingQuantity
             }
         }
         return outstandingTransactions
@@ -45,19 +39,6 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * @param sellTransaction The Transaction object associated with the sales for a given day
      */
     private fun reportBedAndBreakfastTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
-
-        val soldQuantity = if (sellTransaction.quantity >= buyTransaction.quantity) buyTransaction.quantity
-        else sellTransaction.quantity
-
-        val output = "BED AND BREAKFAST Sell ${sellTransaction.getTransactionIdsMessage()} " +
-                "identified with buy ${buyTransaction.getTransactionIdsMessage()}. " +
-                "$soldQuantity shares sold for an average price of $averageSellPrice" +
-                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
-                " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
-                " GBP. $profitOrLossMessage"
-        println(output)
+        println("BED AND BREAKFAST - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

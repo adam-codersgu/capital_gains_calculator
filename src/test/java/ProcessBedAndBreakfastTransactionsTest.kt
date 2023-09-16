@@ -34,13 +34,13 @@ class ProcessBedAndBreakfastTransactionsTest {
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(2),
-            quantity = 25,
-            amount = 467.20
+            remainingQuantity = 25,
+            remainingValue = 467.20
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(3),
-            quantity = 15,
-            amount = 120.10
+            remainingQuantity = 15,
+            remainingValue = 120.10
         )
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
@@ -50,12 +50,12 @@ class ProcessBedAndBreakfastTransactionsTest {
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(3),
-            amount = 485.23
+            remainingValue = 485.23
         )
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(5),
-            amount = 102.04
+            remainingValue = 102.04
         )
     }
 
@@ -77,7 +77,7 @@ class ProcessBedAndBreakfastTransactionsTest {
         for (sellTransaction in outstandingTransactions.sellTransactions) {
             val maxDate = sellTransaction.date.plusDays(31)
 
-            var quantityOfSharesToMatch = sellTransaction.quantity
+            var quantityOfSharesToMatch = sellTransaction.remainingQuantity
             while (quantityOfSharesToMatch > 0) {
                 val buyTransaction = outstandingTransactions.buyTransactions.find {
                     it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
@@ -94,7 +94,7 @@ class ProcessBedAndBreakfastTransactionsTest {
                     assertNotNull(outstandingTransactions.sellTransactions.find {
                         it.transactionIds == sellTransaction.transactionIds
                     })
-                    quantityOfSharesToMatch -= buyTransaction.quantity
+                    quantityOfSharesToMatch -= buyTransaction.remainingQuantity
                 }
                 // No buy transaction found, hence not a bed and breakfast disposal
                 else {
@@ -130,18 +130,18 @@ class ProcessBedAndBreakfastTransactionsTest {
 
         val expectedOutput = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                "). " + sellTransaction.quantity + " shares sold for an average price of " +
-                sellTransaction.amount / sellTransaction.quantity + " GBP on " + sellTransaction.date +
-                " identified with " + buyTransaction.quantity + " shares bought on " + buyTransaction.date +
-                " for an average price of " + buyTransaction.amount / buyTransaction.quantity +
+                "). " + sellTransaction.remainingQuantity + " shares sold for an average price of " +
+                sellTransaction.remainingValue / sellTransaction.remainingQuantity + " GBP on " + sellTransaction.date +
+                " identified with " + buyTransaction.remainingQuantity + " shares bought on " + buyTransaction.date +
+                " for an average price of " + buyTransaction.remainingValue / buyTransaction.remainingQuantity +
                 " GBP. $profitOrLossMessage"
 
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val averageSellPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
+        val averageBuyPrice = buyTransaction.remainingValue / buyTransaction.remainingQuantity
         val output = "BED AND BREAKFAST Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
-                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
+                "). " + sellTransaction.remainingQuantity + " shares sold for an average price of $averageSellPrice" +
+                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.remainingQuantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
                 " GBP. $profitOrLossMessage"
         assertEquals(expectedOutput, output)

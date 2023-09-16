@@ -15,6 +15,16 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      */
     abstract fun process() : OutstandingTransactions
 
+    protected fun getTransactionIdentificationMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
+        return getProportionOfUnitsSoldMessage(buyTransaction, sellTransaction) +
+                " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() +
+                " were identified with " + getProportionOfUnitsBoughtMessage(buyTransaction, sellTransaction) +
+                " units bought on " + buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit" +
+                " price of the purchased shares was " + buyTransaction.getAverageUnitPrice() + " GBP and the" +
+                " average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
+                " GBP. " + getProfitOrLossMessage(buyTransaction, sellTransaction)
+    }
+
     /**
      * Returns a summary of the profit or loss resulting from a given transaction.
      *
@@ -22,7 +32,7 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      * @param sellTransaction The Transaction object associated with the sales for a given day
      * @return A String describing the profit or loss incurred from the transactions
      */
-    protected fun getProfitOrLossMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
+    private fun getProfitOrLossMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
         updateOutstandingTransactions(buyTransaction, sellTransaction)
         val profitOrLossRounded = BigDecimal(profitOrLoss)

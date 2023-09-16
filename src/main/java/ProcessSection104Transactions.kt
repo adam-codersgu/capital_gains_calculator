@@ -19,17 +19,13 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      * bed and breakfast transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        // Group all the transactions and sort them in date order
         val allTransactions = (outstandingTransactions.sellTransactions + outstandingTransactions.buyTransactions)
             .sortedBy { it.date }
-        // Clear the existing lists of outstanding transactions
         outstandingTransactions.buyTransactions.clear()
         outstandingTransactions.sellTransactions.clear()
 
         for (transaction in allTransactions) {
-            // Add buy transactions to the Section 104 holding
             if (transaction.type == "Buy") addTransactionToSection104Holding(transaction)
-            // Process sell transactions
             else matchDisposalWithSection104Holding(transaction)
         }
         printSummaryOfSection104()
@@ -50,15 +46,15 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         // being added to the Section 104 holding
         if (outstandingTransactions.sellTransactions.isNotEmpty()) {
             val remainingBuyTransaction = addPurchasedSharesToOutstandingTransactions(buyTransaction) ?: return
-            buyTransaction.quantity = remainingBuyTransaction.quantity
-            buyTransaction.amount = remainingBuyTransaction.amount
+            buyTransaction.remainingQuantity = remainingBuyTransaction.remainingQuantity
+            buyTransaction.remainingValue = remainingBuyTransaction.remainingValue
         }
 
         section104.transactionIDs.addAll(buyTransaction.transactionIds)
-        section104.quantity += buyTransaction.quantity
-        section104.price += buyTransaction.amount
-        val output = "SECTION 104 " + buyTransaction.quantity + " shares priced at " +
-                buyTransaction.amount / buyTransaction.quantity + " GBP added to the " +
+        section104.quantity += buyTransaction.remainingQuantity
+        section104.price += buyTransaction.remainingValue
+        val output = "SECTION 104 " + buyTransaction.remainingQuantity + " shares priced at " +
+                buyTransaction.remainingValue / buyTransaction.remainingQuantity + " GBP added to the " +
                 "Section 104 holding on " + buyTransaction.date +
                 " (${buyTransaction.getTransactionIdsMessage()})"
         println(output)
@@ -77,29 +73,28 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      */
     private fun addPurchasedSharesToOutstandingTransactions(buyTransaction: Transaction): Transaction? {
         var quantityOfOutstandingSoldShares = 0
-        quantityOfOutstandingSoldShares += outstandingTransactions.sellTransactions.sumOf { it.quantity }
-        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.quantity }
+        quantityOfOutstandingSoldShares += outstandingTransactions.sellTransactions.sumOf { it.remainingQuantity }
+        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.remainingQuantity }
 
         return when {
             // No sold shares outstanding. Can add the full buy transaction to the Section 104 holding
             quantityOfOutstandingSoldShares == 0 -> buyTransaction
             // If there are sufficient outstanding sell shares, then add the full buy transaction
-            quantityOfOutstandingSoldShares >= buyTransaction.quantity -> {
+            quantityOfOutstandingSoldShares >= buyTransaction.remainingQuantity -> {
                 outstandingTransactions.buyTransactions.add(buyTransaction)
                 return null
             }
             // Else add only the required buy transaction shares and transfer the rest to the Section 104 holding
             else -> {
-                val averagePurchasePrice = buyTransaction.amount / buyTransaction.quantity
-                val priceOfOutstandingShares = BigDecimal(averagePurchasePrice * quantityOfOutstandingSoldShares)
-                    .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                val valueOfOutstandingShares = buyTransaction.getAverageUnitPrice() *
+                        quantityOfOutstandingSoldShares
                 val outstandingBuyTransaction = buyTransaction.copy(
-                    quantity = quantityOfOutstandingSoldShares,
-                    amount = priceOfOutstandingShares
+                    remainingQuantity = quantityOfOutstandingSoldShares,
+                    remainingValue = valueOfOutstandingShares
                 )
                 outstandingTransactions.buyTransactions.add(outstandingBuyTransaction)
-                buyTransaction.quantity -= quantityOfOutstandingSoldShares
-                buyTransaction.amount -= priceOfOutstandingShares
+                buyTransaction.remainingQuantity -= quantityOfOutstandingSoldShares
+                buyTransaction.remainingValue -= valueOfOutstandingShares
                 buyTransaction
             }
         }
@@ -119,10 +114,10 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         }
 
         // Cannot match more shares than exist in the Section 104 holding
-        val disposalQuantityToBeMatched = if (sellTransaction.quantity >= section104.quantity) section104.quantity
-        else sellTransaction.quantity
+        val disposalQuantityToBeMatched = if (sellTransaction.remainingQuantity >= section104.quantity) section104.quantity
+        else sellTransaction.remainingQuantity
 
-        val averageDisposalPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageDisposalPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
         val averagePurchasePrice = section104.price / section104.quantity
 
         val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell " +
@@ -136,9 +131,9 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         printTransactionSummary(profitOrLoss, summary)
 
         // There were insufficient shares in the Section 104 holding to match the full disposal
-        if (sellTransaction.quantity > section104.quantity) {
-            sellTransaction.quantity -= section104.quantity
-            sellTransaction.amount -= totalDisposalPrice
+        if (sellTransaction.remainingQuantity > section104.quantity) {
+            sellTransaction.remainingQuantity -= section104.quantity
+            sellTransaction.remainingValue -= totalDisposalPrice
             outstandingTransactions.sellTransactions.add(sellTransaction)
         }
 
