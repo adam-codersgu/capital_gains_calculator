@@ -17,10 +17,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Section104) {
+class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
+        private const val FX_CREDIT = "FX Credit"
+        private const val FX_DEBIT = "FX Debit"
     }
 
     private val buyTransactions = mutableListOf<Transaction>()
@@ -31,8 +33,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
     private val fxTransactionDescriptions = listOf(
         "DEGIRO Transaction and/or third party fees",
-        "FX Credit",
-        "FX Debit"
+        FX_CREDIT,
+        FX_DEBIT
     )
 
     init {
@@ -100,8 +102,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
                 "DEGIRO Transaction and/or third party fees" -> addTransactionFee(row)
-                "FX Credit" -> addFxCreditTransaction(row, transactionDate)
-                "FX Debit" -> addFxDebitTransaction(row, transactionDate)
+                FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
+                FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -115,10 +117,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         val sellTransactionsSharingId = sellTransactions.groupBy { it.transactionIds }.values.filter { it.size > 1 }
         mergeSellTransactions(sellTransactionsSharingId)
 
-        val fxCreditTransactions = fxTransactions.filter { it.type == "FX Credit" &&
+        val fxCreditTransactions = fxTransactions.filter { it.type == FX_CREDIT &&
                 !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
         mergeFxTransactions(fxCreditTransactions)
-        val fxDebitTransactions = fxTransactions.filter { it.type == "FX Debit" &&
+        val fxDebitTransactions = fxTransactions.filter { it.type == FX_DEBIT &&
                 !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
         mergeFxTransactions(fxDebitTransactions)
         integrateFxValuesForBuyTransactions()
@@ -137,31 +139,28 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
     private fun getTransactionId(row: Row): String = row.getCell(11).stringCellValue
 
     private fun addBuyTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionDescription = getTransactionDescription(row)
-        val transactionId = getTransactionId(row)
         val transactionType = "Buy"
-        val transactionQuantity = getTransactionQuantity(transactionDescription)
         val transactionAmount = -row.getCell(8).numericCellValue
-        val transactionCurrency = getTransactionCurrency(row)
-
-        val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity, transactionQuantity,
-            transactionAmount, transactionCurrency)
+        val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
         buyTransactions.add(transaction)
     }
 
     private fun addSellTransaction(row: Row, transactionDate: LocalDate) {
+        val transactionType = "Sell"
+        val transactionAmount = row.getCell(8).numericCellValue
+        val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
+        sellTransactions.add(transaction)
+    }
+
+    private fun buildTransaction(row: Row, date: LocalDate, type: String, amount: Double): Transaction {
         val transactionDescription = getTransactionDescription(row)
         val transactionId = getTransactionId(row)
-        val transactionType = "Sell"
         val transactionQuantity = getTransactionQuantity(transactionDescription)
-        val transactionAmount = row.getCell(8).numericCellValue
         val transactionCurrency = getTransactionCurrency(row)
 
-        val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity, transactionQuantity,
-            transactionAmount, transactionCurrency)
-        sellTransactions.add(transaction)
+        return Transaction(mutableListOf(transactionId),
+            date, type, transactionQuantity, transactionQuantity,
+            amount, transactionCurrency)
     }
 
     /**
@@ -181,25 +180,29 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionId = getTransactionId(row)
-        val transactionType = "FX Debit"
+        val transactionType = FX_DEBIT
         val transactionAmount = -row.getCell(8).numericCellValue
-        val transactionCurrency = getTransactionCurrency(row)
 
-        val transaction = FXTransaction(transactionId, transactionDate,
-            transactionType, transactionAmount, transactionCurrency)
+        val transaction = buildFXTransaction(row, transactionDate,
+            transactionType, transactionAmount)
         fxTransactions.add(transaction)
     }
 
     private fun addFxCreditTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionId = getTransactionId(row)
-        val transactionType = "FX Credit"
+        val transactionType = FX_CREDIT
         val transactionAmount = row.getCell(8).numericCellValue
+
+        val transaction = buildFXTransaction(row, transactionDate,
+            transactionType, transactionAmount)
+        fxTransactions.add(transaction)
+    }
+
+    private fun buildFXTransaction(row: Row, date: LocalDate, type: String, amount: Double): FXTransaction {
+        val transactionId = getTransactionId(row)
         val transactionCurrency = getTransactionCurrency(row)
 
-        val transaction = FXTransaction(transactionId, transactionDate,
-            transactionType, transactionAmount, transactionCurrency)
-        fxTransactions.add(transaction)
+        return FXTransaction(transactionId, date,
+            type, amount, transactionCurrency)
     }
 
     private fun mergeBuyTransactions(transactions: List<List<Transaction>>) {
@@ -251,15 +254,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
         for (transaction in foreignBuyTransactions) {
             fxTransactions.find {
-                it.transactionId == transaction.transactionIds[0] && it.type == "FX Debit"
+                transaction.transactionIds.contains(it.transactionId) && it.type == FX_DEBIT
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
                     amount = it.amount
                 )
-                buyTransactions.removeIf { t ->
-                    t.transactionIds.contains(it.transactionId) && t.currency != DEFAULT_CURRENCY
-                }
+                buyTransactions.remove(transaction)
                 buyTransactions.add(newTransaction)
             }
         }
@@ -278,16 +279,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         for (transaction in foreignSellTransactions) {
             fxTransactions.find {
                 transaction.transactionIds.contains(it.transactionId) &&
-                        it.type == "FX Credit"
+                        it.type == FX_CREDIT
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
                     amount = it.amount
                 )
-                sellTransactions.removeIf { transaction ->
-                    transaction.transactionIds.contains(it.transactionId) &&
-                            transaction.currency != DEFAULT_CURRENCY
-                }
+                sellTransactions.remove(transaction)
                 sellTransactions.add(newTransaction)
             }
         }

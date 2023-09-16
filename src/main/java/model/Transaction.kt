@@ -6,7 +6,8 @@ data class Transaction(
     val transactionIds: MutableList<String>,
     val date: LocalDate,
     val type: String,
-    var quantity: Int,
+    var initialQuantity: Int,
+    var unmatchedQuantity: Int,
     var amount: Double,
     // TODO: Note the default currency is assumed to be GBP
     var currency: String = "GBP"
