@@ -160,7 +160,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
         return Transaction(mutableListOf(transactionId),
             date, type, transactionQuantity, transactionQuantity,
-            amount, transactionCurrency)
+            amount, amount, transactionCurrency)
     }
 
     /**
@@ -223,11 +223,12 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         val newTransaction = transactionsToMerge[0].copy(
             transactionIds = mutableListOf(),
             initialQuantity = transactionsToMerge.sumOf { it.initialQuantity },
-            unmatchedQuantity = transactionsToMerge.sumOf { it.unmatchedQuantity },
-            amount = transactionsToMerge.sumOf { it.amount }
+            remainingQuantity = transactionsToMerge.sumOf { it.remainingQuantity },
+            initialValue = transactionsToMerge.sumOf { it.remainingValue },
+            remainingValue = transactionsToMerge.sumOf { it.remainingValue }
         )
 
-        if (newTransaction.initialQuantity != newTransaction.unmatchedQuantity) {
+        if (newTransaction.initialQuantity != newTransaction.remainingQuantity) {
             throw IllegalStateException("The initial quantity and unmatched quantity of the merged transaction" +
                     "do not match: $newTransaction")
         }
@@ -258,7 +259,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
-                    amount = it.amount
+                    remainingValue = it.amount
                 )
                 buyTransactions.remove(transaction)
                 buyTransactions.add(newTransaction)
@@ -283,7 +284,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
-                    amount = it.amount
+                    remainingValue = it.amount
                 )
                 sellTransactions.remove(transaction)
                 sellTransactions.add(newTransaction)
@@ -308,10 +309,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         val transactionFeesRounded = BigDecimal(transactionFees)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Transaction fees = £$transactionFeesRounded")
-        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.amount })
+        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.remainingValue })
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Disposal proceeds: £$disposalProceeds")
-        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount } + section104.price)
+        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.remainingValue } + section104.price)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Purchase costs: £$purchaseCosts\n")
     }

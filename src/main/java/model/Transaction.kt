@@ -6,15 +6,30 @@ data class Transaction(
     val transactionIds: MutableList<String>,
     val date: LocalDate,
     val type: String,
-    var initialQuantity: Int,
-    var unmatchedQuantity: Int,
-    var amount: Double,
+    val initialQuantity: Int,
+    var remainingQuantity: Int,
+    val initialValue: Double,
+    // TODO - Experiment with setting these remaining values to = initial value, and see if that works
+    var remainingValue: Double,
     // TODO: Note the default currency is assumed to be GBP
     var currency: String = "GBP"
 ) {
+    // FIXME
+    @Deprecated("Outdated method.", ReplaceWith("getTransactionDateAndIdsMessage()"))
     fun getTransactionIdsMessage(): String {
         return if (transactionIds.size == 1) {
-            "transaction ID $transactionIds"
-        } else "transaction IDs $transactionIds"
+            " (transaction ID $transactionIds) "
+        } else " (transaction IDs $transactionIds) "
+    }
+
+    fun getTransactionDateAndIdsMessage(): String {
+        val pluralIndicator = if (transactionIds.size == 1) "s"
+        else ""
+
+        return "$date (transaction ID$pluralIndicator $transactionIds) "
+    }
+
+    fun getAverageUnitPrice(): Double {
+        return initialValue / initialQuantity
     }
 }

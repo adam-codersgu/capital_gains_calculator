@@ -33,13 +33,13 @@ class ProcessSameDayTransactionsTest {
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(1),
-            quantity = 200,
-            amount = 3500.45
+            remainingQuantity = 200,
+            remainingValue = 3500.45
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(3),
-            quantity = 15,
-            amount = 120.10
+            remainingQuantity = 15,
+            remainingValue = 120.10
         )
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
@@ -47,13 +47,13 @@ class ProcessSameDayTransactionsTest {
         )
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
             type = "Sell",
-            quantity = 100,
-            amount = 250.00
+            remainingQuantity = 100,
+            remainingValue = 250.00
         )
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             type = "Sell",
-            quantity = 30,
-            amount = 250.00
+            remainingQuantity = 30,
+            remainingValue = 250.00
         )
     }
 
@@ -111,18 +111,18 @@ class ProcessSameDayTransactionsTest {
 
         val expectedOutput = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
-                " shares were bought for an average price of " + buyTransaction.amount / buyTransaction.quantity +
-                " GBP and " + sellTransaction.quantity + " shares were sold for an average price of " +
-                sellTransaction.amount / sellTransaction.quantity + " GBP. $profitOrLossMessage"
+                ") on " + buyTransaction.date + ". " + buyTransaction.remainingQuantity +
+                " shares were bought for an average price of " + buyTransaction.remainingValue / buyTransaction.remainingQuantity +
+                " GBP and " + sellTransaction.remainingQuantity + " shares were sold for an average price of " +
+                sellTransaction.remainingValue / sellTransaction.remainingQuantity + " GBP. $profitOrLossMessage"
 
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val averageSellPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
+        val averageBuyPrice = buyTransaction.remainingValue / buyTransaction.remainingQuantity
         val output = "SAME DAY Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                ") on " + buyTransaction.date + ". " + buyTransaction.quantity +
+                ") on " + buyTransaction.date + ". " + buyTransaction.remainingQuantity +
                 " shares were bought for an average price of $averageBuyPrice GBP and " +
-                sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +
+                sellTransaction.remainingQuantity + " shares were sold for an average price of $averageSellPrice " +
                 "GBP. $profitOrLossMessage"
         assertEquals(expectedOutput, output)
     }
