@@ -53,11 +53,9 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         section104.transactionIDs.addAll(buyTransaction.transactionIds)
         section104.quantity += buyTransaction.remainingQuantity
         section104.price += buyTransaction.remainingValue
-        val output = "SECTION 104 " + buyTransaction.remainingQuantity + " shares priced at " +
-                buyTransaction.remainingValue / buyTransaction.remainingQuantity + " GBP added to the " +
-                "Section 104 holding on " + buyTransaction.date +
-                " (${buyTransaction.getTransactionIdsMessage()})"
-        println(output)
+        println("SECTION 104 " + buyTransaction.remainingQuantity + " added to the Section 104 holding on " +
+                buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit price of the purchased " +
+                " shares was " + buyTransaction.getAverageUnitPrice() + " GBP.")
     }
 
     /**
@@ -107,7 +105,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      * @param sellTransaction The Transaction object associated with the disposals for a given day
      */
     private fun matchDisposalWithSection104Holding(sellTransaction: Transaction) {
-        // If the Section 104 holding is empty then add the disposal to the OutstandingTransactions object.
+        // If the Section 104 holding is empty then add the disposal to the outstanding transactions list.
         if (section104.quantity == 0) {
             outstandingTransactions.sellTransactions.add(sellTransaction)
             return
@@ -117,13 +115,16 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         val disposalQuantityToBeMatched = if (sellTransaction.remainingQuantity >= section104.quantity) section104.quantity
         else sellTransaction.remainingQuantity
 
-        val averageDisposalPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
-        val averagePurchasePrice = section104.price / section104.quantity
+        val summary = "SECTION 104 - " + getProportionOfUnitsSoldMessage(section104, sellTransaction) +
+                " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() + " were identified with " +
+                getProportionOfUnitsBoughtMessage(section104, sellTransaction) + " units in the Section 104 holding. " +
+                "The average unit price of the Section 104 holding was " + section104.getAverageUnitPrice() +
+                " GBP and the average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
+                " GBP. "
 
-        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell " +
-                sellTransaction.getTransactionIdsMessage() + " dated " + sellTransaction.date + " identified with " +
-                "the Section 104 holding. The average price of the sold shares was $averageDisposalPrice GBP, " +
-                "and the average price of the shares in the Section 104 holding was $averagePurchasePrice GBP. "
+        // TODO - RESUME
+        // TODO NEED TO INCORPORATE THE FOLLOWING INTO THE MESSAGE+ getProfitOrLossMessage(buyTransaction, sellTransaction)
+
 
         val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
         val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
@@ -143,6 +144,22 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
 
         // If all shares in the Section 104 holding have been sold, then reset the Section104 object
         if (section104.quantity == 0) section104.clear()
+    }
+
+    private fun getProportionOfUnitsSoldMessage(section104: Section104, sellTransaction: Transaction) : String {
+        return if (section104.quantity < sellTransaction.initialQuantity || sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
+            "${section104.quantity} of the ${sellTransaction.initialQuantity}"
+        } else {
+            "All ${sellTransaction.initialQuantity}"
+        }
+    }
+
+    private fun getProportionOfUnitsBoughtMessage(section104: Section104, sellTransaction: Transaction) : String {
+        return if (sellTransaction.initialQuantity < section104.quantity) {
+            "${sellTransaction.remainingQuantity} of the ${section104.quantity}"
+        } else {
+            "all ${section104.quantity}"
+        }
     }
 
     /**

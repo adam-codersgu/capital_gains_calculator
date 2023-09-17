@@ -101,7 +101,7 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         }
     }
 
-    protected fun getProportionOfUnitsSoldMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
+    private fun getProportionOfUnitsSoldMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
         return if (buyTransaction.initialQuantity < sellTransaction.initialQuantity || sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
             "${buyTransaction.remainingQuantity} of the ${sellTransaction.initialQuantity}"
         } else {
@@ -109,7 +109,7 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         }
     }
 
-    protected fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
+    private fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
         return if (sellTransaction.initialQuantity < buyTransaction.initialQuantity || buyTransaction.initialQuantity != buyTransaction.remainingQuantity) {
             "${sellTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
         } else {

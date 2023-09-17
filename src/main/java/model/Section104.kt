@@ -11,4 +11,8 @@ data class Section104(
         quantity = 0
         price = 0.00
     }
+
+    fun getAverageUnitPrice(): Double {
+        return price / quantity
+    }
 }
