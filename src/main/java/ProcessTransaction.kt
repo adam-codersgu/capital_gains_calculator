@@ -3,6 +3,7 @@ import model.OutstandingTransactions
 import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.min
 
 abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransactions) {
 
@@ -35,15 +36,17 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
     private fun getProfitOrLossMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
         updateOutstandingTransactions(buyTransaction, sellTransaction)
-        val profitOrLossRounded = BigDecimal(profitOrLoss)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
         return if (profitOrLoss >= 0) {
             outstandingTransactions.totalGains += profitOrLoss
-            "Profit = £$profitOrLossRounded"
+            "Profit = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}"
         } else {
             outstandingTransactions.totalLoss += profitOrLoss
-            "Loss = £$profitOrLossRounded"
+            "Loss = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}"
         }
+    }
+
+    protected fun roundAmountToTwoDecimalPlaces(amount: Double): String {
+        return BigDecimal(amount).setScale(2, RoundingMode.HALF_EVEN).toString()
     }
 
     /**
@@ -54,19 +57,12 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      * @return A Double representing the profit or loss incurred from the transactions
      */
     private fun calculateProfitLoss(buyTransaction: Transaction, sellTransaction: Transaction): Double {
-        return when {
-            sellTransaction.remainingQuantity == buyTransaction.remainingQuantity -> {
-                sellTransaction.remainingValue - buyTransaction.remainingValue
-            }
-            sellTransaction.remainingQuantity > buyTransaction.remainingQuantity -> {
-                val valueOfSoldShares = sellTransaction.getAverageUnitPrice() * buyTransaction.remainingQuantity
-                valueOfSoldShares - buyTransaction.remainingValue
-            }
-            // Quantity purchased is greater than the quantity sold
-            else -> {
-                val valueOfPurchasedShares = buyTransaction.getAverageUnitPrice() * sellTransaction.remainingQuantity
-                sellTransaction.remainingValue - valueOfPurchasedShares
-            }
+        return if (sellTransaction.remainingQuantity == buyTransaction.remainingQuantity) {
+            sellTransaction.remainingValue - buyTransaction.remainingValue
+        } else {
+            val quantitySold = min(buyTransaction.remainingQuantity, sellTransaction.remainingQuantity)
+            (sellTransaction.getAverageUnitPrice() - buyTransaction.getAverageUnitPrice()) *
+                    quantitySold
         }
     }
 

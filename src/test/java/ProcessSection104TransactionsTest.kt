@@ -37,13 +37,13 @@ class ProcessSection104TransactionsTest {
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(2),
-            quantity = 25,
-            amount = 467.20
+            remainingQuantity = 25,
+            remainingValue = 467.20
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(3),
-            quantity = 15,
-            amount = 120.10
+            remainingQuantity = 15,
+            remainingValue = 120.10
         )
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
@@ -53,13 +53,13 @@ class ProcessSection104TransactionsTest {
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(3),
-            amount = 485.23
+            remainingValue = 485.23
         )
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(5),
-            quantity = 20,
-            amount = 143.04
+            remainingQuantity = 20,
+            remainingValue = 143.04
         )
     }
 
@@ -130,22 +130,22 @@ class ProcessSection104TransactionsTest {
             // Mock the addPurchasedSharesToOutstandingTransactions method by returning
             // a Transaction with 5 fewer shares and a price 10 units lower
             val remainingBuyTransaction = buyTransaction.copy(
-                quantity = buyTransaction.quantity - 5,
-                amount = buyTransaction.amount - 10
+                remainingQuantity = buyTransaction.remainingQuantity - 5,
+                remainingValue = buyTransaction.remainingValue - 10
             )
 
-            buyTransaction.quantity = remainingBuyTransaction.quantity
-            assertEquals(buyTransaction.quantity, remainingBuyTransaction.quantity)
-            buyTransaction.amount = remainingBuyTransaction.amount
-            assertEquals(buyTransaction.amount, remainingBuyTransaction.amount)
+            buyTransaction.remainingQuantity = remainingBuyTransaction.remainingQuantity
+            assertEquals(buyTransaction.remainingQuantity, remainingBuyTransaction.remainingQuantity)
+            buyTransaction.remainingValue = remainingBuyTransaction.remainingValue
+            assertEquals(buyTransaction.remainingValue, remainingBuyTransaction.remainingValue)
         }
 
         section104.transactionIDs.addAll(buyTransaction.transactionIds)
         assertEquals(section104.transactionIDs, buyTransaction.transactionIds)
-        section104.quantity += buyTransaction.quantity
-        assertEquals(section104.quantity, buyTransaction.quantity)
-        section104.price += buyTransaction.amount
-        assertEquals(section104.price, buyTransaction.amount)
+        section104.quantity += buyTransaction.remainingQuantity
+        assertEquals(section104.quantity, buyTransaction.remainingQuantity)
+        section104.price += buyTransaction.remainingValue
+        assertEquals(section104.price, buyTransaction.remainingValue)
     }
 
     /**
@@ -172,8 +172,8 @@ class ProcessSection104TransactionsTest {
         when (scenario) {
             2 -> outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1))
             3 -> {
-                buyTransaction.quantity += buyTransaction.quantity
-                buyTransaction.amount += buyTransaction.amount
+                buyTransaction.remainingQuantity += buyTransaction.remainingQuantity
+                buyTransaction.remainingValue += buyTransaction.remainingValue
                 outstandingTransactions.sellTransactions.addAll(listOf(SELL_TRANSACTION_1))
             }
             4 -> {
@@ -186,17 +186,17 @@ class ProcessSection104TransactionsTest {
             }
         }
 
-        var quantityOfOutstandingSoldShares = outstandingTransactions.sellTransactions.sumOf { it.quantity }
+        var quantityOfOutstandingSoldShares = outstandingTransactions.sellTransactions.sumOf { it.remainingQuantity }
 
         var testQuantityOfOutstandingSoldShares = 0
         for (transaction in outstandingTransactions.sellTransactions) {
-            testQuantityOfOutstandingSoldShares += transaction.quantity
+            testQuantityOfOutstandingSoldShares += transaction.remainingQuantity
         }
         assertEquals(quantityOfOutstandingSoldShares, testQuantityOfOutstandingSoldShares)
 
-        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.quantity }
+        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.remainingQuantity }
         for (transaction in outstandingTransactions.buyTransactions) {
-            testQuantityOfOutstandingSoldShares -= transaction.quantity
+            testQuantityOfOutstandingSoldShares -= transaction.remainingQuantity
         }
         assertEquals(quantityOfOutstandingSoldShares, testQuantityOfOutstandingSoldShares)
 
@@ -204,27 +204,27 @@ class ProcessSection104TransactionsTest {
             // No sold shares outstanding. Can add the full buy transaction to the Section 104 holding
             quantityOfOutstandingSoldShares == 0 -> assertEquals(testQuantityOfOutstandingSoldShares, 0)
             // If there are sufficient outstanding sell shares, then add the full buy transaction
-            quantityOfOutstandingSoldShares >= buyTransaction.quantity -> {
+            quantityOfOutstandingSoldShares >= buyTransaction.remainingQuantity -> {
                 assertTrue(outstandingTransactions.buyTransactions.add(buyTransaction))
             }
             // Else add only the required buy transaction shares and transfer the rest to the Section 104 holding
             else -> {
                 val originalBuyTransaction = buyTransaction.copy()
 
-                val averagePurchasePrice = buyTransaction.amount / buyTransaction.quantity
+                val averagePurchasePrice = buyTransaction.remainingValue / buyTransaction.remainingQuantity
                 val priceOfOutstandingShares = BigDecimal(averagePurchasePrice * quantityOfOutstandingSoldShares)
                     .setScale(2, RoundingMode.HALF_EVEN).toDouble()
                 val outstandingBuyTransaction = buyTransaction.copy(
-                    quantity = quantityOfOutstandingSoldShares,
-                    amount = priceOfOutstandingShares
+                    remainingQuantity = quantityOfOutstandingSoldShares,
+                    remainingValue = priceOfOutstandingShares
                 )
                 assertTrue(outstandingTransactions.buyTransactions.add(outstandingBuyTransaction))
-                buyTransaction.quantity -= quantityOfOutstandingSoldShares
-                assertEquals(originalBuyTransaction.quantity, buyTransaction.quantity +
-                        outstandingBuyTransaction.quantity)
-                buyTransaction.amount -= priceOfOutstandingShares
-                assertEquals(originalBuyTransaction.amount, buyTransaction.amount +
-                        outstandingBuyTransaction.amount)
+                buyTransaction.remainingQuantity -= quantityOfOutstandingSoldShares
+                assertEquals(originalBuyTransaction.remainingQuantity, buyTransaction.remainingQuantity +
+                        outstandingBuyTransaction.remainingQuantity)
+                buyTransaction.remainingValue -= priceOfOutstandingShares
+                assertEquals(originalBuyTransaction.remainingValue, buyTransaction.remainingValue +
+                        outstandingBuyTransaction.remainingValue)
             }
         }
     }
@@ -248,13 +248,13 @@ class ProcessSection104TransactionsTest {
         when (scenario) {
             2 -> section104 = Section104(
                 transactionIDs = BUY_TRANSACTION_1.transactionIds,
-                quantity = BUY_TRANSACTION_1.quantity,
-                price = BUY_TRANSACTION_1.amount
+                quantity = BUY_TRANSACTION_1.remainingQuantity,
+                price = BUY_TRANSACTION_1.remainingValue
             )
             3 -> section104 = Section104(
                 transactionIDs = BUY_TRANSACTION_2.transactionIds,
-                quantity = BUY_TRANSACTION_2.quantity,
-                price = BUY_TRANSACTION_2.amount
+                quantity = BUY_TRANSACTION_2.remainingQuantity,
+                price = BUY_TRANSACTION_2.remainingValue
             )
         }
 
@@ -265,13 +265,13 @@ class ProcessSection104TransactionsTest {
         } else assertTrue(section104.quantity > 0)
 
         // Cannot match more shares than exist in the Section 104 holding
-        val disposalQuantityToBeMatched = if (sellTransaction.quantity >= section104.quantity) section104.quantity
-        else sellTransaction.quantity
+        val disposalQuantityToBeMatched = if (sellTransaction.remainingQuantity >= section104.quantity) section104.quantity
+        else sellTransaction.remainingQuantity
 
-        if (sellTransaction.quantity >= section104.quantity) assertEquals(section104.quantity, disposalQuantityToBeMatched)
-        else assertEquals(sellTransaction.quantity, disposalQuantityToBeMatched)
+        if (sellTransaction.remainingQuantity >= section104.quantity) assertEquals(section104.quantity, disposalQuantityToBeMatched)
+        else assertEquals(sellTransaction.remainingQuantity, disposalQuantityToBeMatched)
 
-        val averageDisposalPrice = sellTransaction.amount / sellTransaction.quantity
+        val averageDisposalPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
         val averagePurchasePrice = section104.price / section104.quantity
 
         val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
@@ -279,18 +279,18 @@ class ProcessSection104TransactionsTest {
         val profitOrLoss = totalDisposalPrice - totalPurchasePrice
 
         assertEquals(
-            ((sellTransaction.amount / sellTransaction.quantity) * disposalQuantityToBeMatched)
+            ((sellTransaction.remainingValue / sellTransaction.remainingQuantity) * disposalQuantityToBeMatched)
                     - ((section104.price / section104.quantity) * disposalQuantityToBeMatched),
             profitOrLoss
         )
 
         // There were insufficient shares in the Section 104 holding to match the full disposal
-        if (sellTransaction.quantity > section104.quantity) {
+        if (sellTransaction.remainingQuantity > section104.quantity) {
             val originalSellTransaction = sellTransaction.copy()
-            sellTransaction.quantity -= section104.quantity
-            assertEquals(originalSellTransaction.quantity, section104.quantity + sellTransaction.quantity)
-            sellTransaction.amount -= totalDisposalPrice
-            assertEquals(originalSellTransaction.amount, totalDisposalPrice + sellTransaction.amount)
+            sellTransaction.remainingQuantity -= section104.quantity
+            assertEquals(originalSellTransaction.remainingQuantity, section104.quantity + sellTransaction.remainingQuantity)
+            sellTransaction.remainingValue -= totalDisposalPrice
+            assertEquals(originalSellTransaction.remainingValue, totalDisposalPrice + sellTransaction.remainingValue)
             assertTrue(outstandingTransactions.sellTransactions.add(sellTransaction))
         }
 
@@ -318,18 +318,18 @@ class ProcessSection104TransactionsTest {
         val sellTransaction = SELL_TRANSACTION_1.copy()
         section104 = Section104(
             transactionIDs = BUY_TRANSACTION_1.transactionIds,
-            quantity = BUY_TRANSACTION_1.quantity,
-            price = BUY_TRANSACTION_1.amount
+            quantity = BUY_TRANSACTION_1.remainingQuantity,
+            price = BUY_TRANSACTION_1.remainingValue
         )
 
-        val expectedSummary = "SECTION 104 " + sellTransaction.quantity + " shares from sell transaction " +
+        val expectedSummary = "SECTION 104 " + sellTransaction.remainingQuantity + " shares from sell transaction " +
                 "(ID(s) " + sellTransaction.transactionIds + ") dated " + sellTransaction.date + " identified " +
                 "with the Section 104 holding. The average price of the sold shares was " +
-                sellTransaction.amount / sellTransaction.quantity + " GBP, and the average price of the shares " +
+                sellTransaction.remainingValue / sellTransaction.remainingQuantity + " GBP, and the average price of the shares " +
                 "in the Section 104 holding was " + section104.price / section104.quantity + " GBP. "
 
-        val disposalQuantityToBeMatched = sellTransaction.quantity
-        val averageDisposalPrice = sellTransaction.amount / sellTransaction.quantity
+        val disposalQuantityToBeMatched = sellTransaction.remainingQuantity
+        val averageDisposalPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
         val averagePurchasePrice = section104.price / section104.quantity
         val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell transaction (ID(s) " +
                 sellTransaction.transactionIds + ") dated " + sellTransaction.date + " identified with " +
@@ -387,8 +387,8 @@ class ProcessSection104TransactionsTest {
         if (scenario == 2) {
             section104 = Section104(
                 transactionIDs = BUY_TRANSACTION_1.transactionIds,
-                quantity = BUY_TRANSACTION_1.quantity,
-                price = BUY_TRANSACTION_1.amount
+                quantity = BUY_TRANSACTION_1.remainingQuantity,
+                price = BUY_TRANSACTION_1.remainingValue
             )
             expectedMessage = "\nCARRY FORWARD TO NEXT TAX TEAR There are purchased shares remaining in " +
                     "the Section 104 holding. These shares may need to be carried forward to be matched with " +

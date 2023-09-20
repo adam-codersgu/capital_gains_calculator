@@ -2,8 +2,7 @@
 import model.OutstandingTransactions
 import model.Section104
 import model.Transaction
-import java.math.BigDecimal
-import java.math.RoundingMode
+import kotlin.math.min
 
 class ProcessSection104Transactions(outstandingTransactions: OutstandingTransactions,
                                     private val section104: Section104 = Section104())
@@ -111,10 +110,6 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
             return
         }
 
-        // Cannot match more shares than exist in the Section 104 holding
-        val disposalQuantityToBeMatched = if (sellTransaction.remainingQuantity >= section104.quantity) section104.quantity
-        else sellTransaction.remainingQuantity
-
         val summary = "SECTION 104 - " + getProportionOfUnitsSoldMessage(section104, sellTransaction) +
                 " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() + " were identified with " +
                 getProportionOfUnitsBoughtMessage(section104, sellTransaction) + " units in the Section 104 holding. " +
@@ -122,28 +117,30 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
                 " GBP and the average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
                 " GBP. "
 
-        // TODO - RESUME
-        // TODO NEED TO INCORPORATE THE FOLLOWING INTO THE MESSAGE+ getProfitOrLossMessage(buyTransaction, sellTransaction)
+        // TODO - Use min function in other similar situations
+        val disposalQuantity = min(sellTransaction.remainingQuantity, section104.quantity)
+        val profitOrLoss = (sellTransaction.getAverageUnitPrice() - section104.getAverageUnitPrice()) *
+                disposalQuantity
 
-
-        val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
-        val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
-        val profitOrLoss = totalDisposalPrice - totalPurchasePrice
-        printTransactionSummary(profitOrLoss, summary)
-
-        // There were insufficient shares in the Section 104 holding to match the full disposal
         if (sellTransaction.remainingQuantity > section104.quantity) {
-            sellTransaction.remainingQuantity -= section104.quantity
-            sellTransaction.remainingValue -= totalDisposalPrice
+            sellTransaction.remainingQuantity -= disposalQuantity
+            sellTransaction.remainingValue -= (sellTransaction.getAverageUnitPrice() * disposalQuantity)
             outstandingTransactions.sellTransactions.add(sellTransaction)
         }
 
-        // Remove the matched shares from the Section 104 holding
-        section104.quantity -= disposalQuantityToBeMatched
-        section104.price -= totalPurchasePrice
+        if (profitOrLoss >= 0) {
+            println(summary + "Profit = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}.")
+            outstandingTransactions.totalGains += profitOrLoss
+        } else {
+            println(summary + "Loss = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}.")
+            outstandingTransactions.totalLoss += profitOrLoss
+        }
 
-        // If all shares in the Section 104 holding have been sold, then reset the Section104 object
-        if (section104.quantity == 0) section104.clear()
+        if (section104.quantity - disposalQuantity == 0) section104.clear()
+        else {
+            section104.price -= (section104.getAverageUnitPrice() * disposalQuantity)
+            section104.quantity -= disposalQuantity
+        }
     }
 
     private fun getProportionOfUnitsSoldMessage(section104: Section104, sellTransaction: Transaction) : String {
@@ -160,27 +157,6 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         } else {
             "all ${section104.quantity}"
         }
-    }
-
-    /**
-     * Prints a summary of a disposal that is matched against shares in the Section 104 holding.
-     * The transaction summary includes the profit or loss resulting from the disposal.
-     *
-     * @param profitOrLoss The profit or loss incurred from the disposal.
-     * @param summary The transaction summary (excluding the profit/loss summary)
-     */
-    private fun printTransactionSummary(profitOrLoss: Double, summary: String) {
-        val profitOrLossRounded = BigDecimal(profitOrLoss)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        val profitOrLossSummary: String
-        if (profitOrLoss >= 0) {
-            profitOrLossSummary = "Profit = £$profitOrLossRounded."
-            outstandingTransactions.totalGains += profitOrLoss
-        } else {
-            profitOrLossSummary = "Loss = £$profitOrLossRounded."
-            outstandingTransactions.totalLoss += profitOrLoss
-        }
-        println(summary + profitOrLossSummary)
     }
 
     /**
