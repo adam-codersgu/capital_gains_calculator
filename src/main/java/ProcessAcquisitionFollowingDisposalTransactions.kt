@@ -18,19 +18,14 @@ class ProcessAcquisitionFollowingDisposalTransactions(outstandingTransactions: O
      */
     override fun process(): OutstandingTransactions {
         for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
-            var quantityOfSharesToMatch = sellTransaction.quantity
+            var quantityOfSharesToMatch = sellTransaction.remainingQuantity
             while (quantityOfSharesToMatch > 0) {
-                val buyTransaction = if (outstandingTransactions.buyTransactions.isEmpty()) null
-                else outstandingTransactions.buyTransactions[0]
-
-                if (buyTransaction != null) {
-                    // Must retrieve an up-to-date sell Transaction object in case its quantity and price have
-                    // been modified during previous iterations.
-                    reportAcquisitionFollowingDisposalTransaction(buyTransaction, outstandingTransactions.sellTransactions.find {
-                        it.transactionIds == sellTransaction.transactionIds
-                    } ?: throw Exception("Could not find sell transaction ID " + sellTransaction.transactionIds))
-                    quantityOfSharesToMatch -= buyTransaction.quantity
-                } else break
+                if (outstandingTransactions.buyTransactions.isEmpty()) break
+                else outstandingTransactions.buyTransactions[0].let { buyTransaction ->
+                    reportAcquisitionFollowingDisposalTransaction(buyTransaction.copy(),
+                        getUpToDateSellTransactionByTransactionIds(sellTransaction.transactionIds))
+                    quantityOfSharesToMatch -= buyTransaction.remainingQuantity
+                }
             }
         }
         return outstandingTransactions
@@ -45,22 +40,10 @@ class ProcessAcquisitionFollowingDisposalTransactions(outstandingTransactions: O
      * not exceed the date of the sell transaction.
      */
     private fun reportAcquisitionFollowingDisposalTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        // The date of the buy transaction must exceed the date of the sell transaction
         if (buyTransaction.date <= sellTransaction.date) {
-            println("Processing halted at buy transaction " + buyTransaction.transactionIds +
-            " and sell transaction " + sellTransaction.transactionIds)
-            throw AcquisitionNotFollowingDisposalException()
+            throw AcquisitionNotFollowingDisposalException(buyTransaction, sellTransaction)
         }
 
-        val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
-        val output = "ACQUISITION FOLLOWING DISPOSAL Sell ${sellTransaction.getTransactionIdsMessage()} " +
-                "identified with buy ${buyTransaction.getTransactionIdsMessage()}. " +
-                sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
-                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
-                " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
-                " GBP. $profitOrLossMessage"
-        println(output)
+        println("ACQUISITION FOLLOWING DISPOSAL - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

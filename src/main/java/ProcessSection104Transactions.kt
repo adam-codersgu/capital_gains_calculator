@@ -117,7 +117,6 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
                 " GBP and the average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
                 " GBP. "
 
-        // TODO - Use min function in other similar situations
         val disposalQuantity = min(sellTransaction.remainingQuantity, section104.quantity)
         val profitOrLoss = (sellTransaction.getAverageUnitPrice() - section104.getAverageUnitPrice()) *
                 disposalQuantity

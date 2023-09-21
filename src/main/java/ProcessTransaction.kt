@@ -112,4 +112,10 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
             "all ${buyTransaction.initialQuantity}"
         }
     }
+
+    protected fun getUpToDateSellTransactionByTransactionIds(transactionIds: List<String>): Transaction {
+        return outstandingTransactions.sellTransactions.find {
+            it.transactionIds == transactionIds
+        }?.copy() ?: throw Exception("Could not find sell transaction ID $transactionIds")
+    }
 }

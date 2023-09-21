@@ -25,7 +25,8 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
                     it.date.isAfter(sellTransaction.date) && it.date.isBefore(maxDate)
                 } ?: break
 
-                reportBedAndBreakfastTransaction(buyTransaction.copy(), sellTransaction.copy())
+                reportBedAndBreakfastTransaction(buyTransaction.copy(),
+                    getUpToDateSellTransactionByTransactionIds(sellTransaction.transactionIds))
                 quantityOfSharesToMatch -= buyTransaction.remainingQuantity
             }
         }

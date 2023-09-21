@@ -14,14 +14,6 @@ data class Transaction(
     // TODO: Note the default currency is assumed to be GBP
     var currency: String = "GBP"
 ) {
-    // FIXME
-    @Deprecated("Outdated method.", ReplaceWith("getTransactionDateAndIdsMessage()"))
-    fun getTransactionIdsMessage(): String {
-        return if (transactionIds.size == 1) {
-            " (transaction ID $transactionIds) "
-        } else " (transaction IDs $transactionIds) "
-    }
-
     fun getTransactionDateAndIdsMessage(): String {
         val pluralIndicator = if (transactionIds.size == 1) "s"
         else ""

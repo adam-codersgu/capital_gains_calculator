@@ -34,8 +34,8 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(2),
-            quantity = 25,
-            amount = 467.20
+            remainingQuantity = 25,
+            remainingValue = 467.20
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_2.copy(
             date = LocalDate.now().minusDays(5)
@@ -48,7 +48,7 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(3),
-            amount = 485.23
+            remainingValue = 485.23
         )
         private val SELL_TRANSACTION_3 = SELL_TRANSACTION_2.copy(
             date = LocalDate.now().minusDays(4)
@@ -90,7 +90,7 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
         if (scenario == 1) outstandingTransactions.buyTransactions.clear()
 
         for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
-            var quantityOfSharesToMatch = sellTransaction.quantity
+            var quantityOfSharesToMatch = sellTransaction.remainingQuantity
             while (quantityOfSharesToMatch > 0) {
                 val buyTransaction = if (outstandingTransactions.buyTransactions.isEmpty()) null
                 else outstandingTransactions.buyTransactions[0]
@@ -103,8 +103,8 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
                         it.transactionIds == sellTransaction.transactionIds
                     })
                     val originalQuantityOfSharesToMatch = quantityOfSharesToMatch
-                    quantityOfSharesToMatch -= buyTransaction.quantity
-                    assertEquals(originalQuantityOfSharesToMatch - buyTransaction.quantity, quantityOfSharesToMatch)
+                    quantityOfSharesToMatch -= buyTransaction.remainingQuantity
+                    assertEquals(originalQuantityOfSharesToMatch - buyTransaction.remainingQuantity, quantityOfSharesToMatch)
                 } else break
             }
         }
@@ -135,10 +135,10 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
 
         val expectedOutput = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                "). " + sellTransaction.quantity + " shares sold for an average price of " +
-                sellTransaction.amount / sellTransaction.quantity + " GBP on " + sellTransaction.date +
-                " identified with " + buyTransaction.quantity + " shares bought on " + buyTransaction.date +
-                " for an average price of " + buyTransaction.amount / buyTransaction.quantity +
+                "). " + sellTransaction.remainingQuantity + " shares sold for an average price of " +
+                sellTransaction.remainingValue / sellTransaction.remainingQuantity + " GBP on " + sellTransaction.date +
+                " identified with " + buyTransaction.remainingQuantity + " shares bought on " + buyTransaction.date +
+                " for an average price of " + buyTransaction.remainingValue / buyTransaction.remainingQuantity +
                 " GBP. $profitOrLossMessage"
 
         // The date of the buy transaction must exceed the date of the sell transaction
@@ -155,12 +155,12 @@ class ProcessAcquisitionFollowingDisposalTransactionsTest() {
                 block = { reportAcquisitionFollowingDisposalTransaction(buyTransaction, sellTransaction) })
         }
 
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
+        val averageSellPrice = sellTransaction.remainingValue / sellTransaction.remainingQuantity
+        val averageBuyPrice = buyTransaction.remainingValue / buyTransaction.remainingQuantity
         val output = "ACQUISITION FOLLOWING DISPOSAL Sell transaction(s) (IDs " + sellTransaction.transactionIds +
                 ") identified with buy transaction(s) (IDs " + buyTransaction.transactionIds +
-                "). " + sellTransaction.quantity + " shares sold for an average price of $averageSellPrice" +
-                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.quantity +
+                "). " + sellTransaction.remainingQuantity + " shares sold for an average price of $averageSellPrice" +
+                " GBP on " + sellTransaction.date + " identified with " + buyTransaction.remainingQuantity +
                 " shares bought on " + buyTransaction.date + " for an average price of $averageBuyPrice" +
                 " GBP. $profitOrLossMessage"
         assertEquals(expectedOutput, output)
