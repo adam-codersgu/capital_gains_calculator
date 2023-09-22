@@ -110,12 +110,10 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
             return
         }
 
-        val summary = "SECTION 104 - " + getProportionOfUnitsSoldMessage(section104, sellTransaction) +
-                " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() + " were identified with " +
+        val summary = "SECTION 104 - " + getProportionOfUnitsSoldMessage(section104.quantity, sellTransaction) +
                 getProportionOfUnitsBoughtMessage(section104, sellTransaction) + " units in the Section 104 holding. " +
                 "The average unit price of the Section 104 holding was " + section104.getAverageUnitPrice() +
-                " GBP and the average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
-                " GBP. "
+                " GBP " + getUnitPriceOfSoldSharesMessage(sellTransaction)
 
         val disposalQuantity = min(sellTransaction.remainingQuantity, section104.quantity)
         val profitOrLoss = (sellTransaction.getAverageUnitPrice() - section104.getAverageUnitPrice()) *
@@ -139,14 +137,6 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         else {
             section104.price -= (section104.getAverageUnitPrice() * disposalQuantity)
             section104.quantity -= disposalQuantity
-        }
-    }
-
-    private fun getProportionOfUnitsSoldMessage(section104: Section104, sellTransaction: Transaction) : String {
-        return if (section104.quantity < sellTransaction.initialQuantity || sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
-            "${section104.quantity} of the ${sellTransaction.initialQuantity}"
-        } else {
-            "All ${sellTransaction.initialQuantity}"
         }
     }
 

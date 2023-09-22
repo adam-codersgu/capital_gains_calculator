@@ -17,13 +17,12 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
     abstract fun process() : OutstandingTransactions
 
     protected fun getTransactionIdentificationMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
-        return getProportionOfUnitsSoldMessage(buyTransaction, sellTransaction) +
-                " units sold on " + sellTransaction.getTransactionDateAndIdsMessage() +
-                " were identified with " + getProportionOfUnitsBoughtMessage(buyTransaction, sellTransaction) +
+        return getProportionOfUnitsSoldMessage(buyTransaction.remainingQuantity, sellTransaction) +
+                getProportionOfUnitsBoughtMessage(buyTransaction, sellTransaction) +
                 " units bought on " + buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit" +
-                " price of the purchased shares was " + buyTransaction.getAverageUnitPrice() + " GBP and the" +
-                " average unit price of the sold shares was " + sellTransaction.getAverageUnitPrice() +
-                " GBP. " + getProfitOrLossMessage(buyTransaction, sellTransaction)
+                " price of the purchased shares was " + buyTransaction.getAverageUnitPrice() + " GBP " +
+                getUnitPriceOfSoldSharesMessage(sellTransaction) +
+                getProfitOrLossMessage(buyTransaction, sellTransaction)
     }
 
     /**
@@ -97,12 +96,15 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         }
     }
 
-    private fun getProportionOfUnitsSoldMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
-        return if (buyTransaction.initialQuantity < sellTransaction.initialQuantity || sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
-            "${buyTransaction.remainingQuantity} of the ${sellTransaction.initialQuantity}"
+    protected fun getProportionOfUnitsSoldMessage(remainingBuyQuantity: Int, sellTransaction: Transaction) : String {
+        val messageBeginning = if (remainingBuyQuantity < sellTransaction.remainingQuantity ||
+            sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
+            "$remainingBuyQuantity of the ${sellTransaction.initialQuantity}"
         } else {
             "All ${sellTransaction.initialQuantity}"
         }
+        return "$messageBeginning units sold on ${sellTransaction.getTransactionDateAndIdsMessage()} " +
+                "were identified with "
     }
 
     private fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
@@ -111,6 +113,10 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         } else {
             "all ${buyTransaction.initialQuantity}"
         }
+    }
+
+    protected fun getUnitPriceOfSoldSharesMessage(sellTransaction: Transaction): String {
+        return "and the average unit price of the sold shares was ${sellTransaction.getAverageUnitPrice()} GBP. "
     }
 
     protected fun getUpToDateSellTransactionByTransactionIds(transactionIds: List<String>): Transaction {
