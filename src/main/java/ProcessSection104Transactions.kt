@@ -52,9 +52,14 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         section104.transactionIDs.addAll(buyTransaction.transactionIds)
         section104.quantity += buyTransaction.remainingQuantity
         section104.price += buyTransaction.remainingValue
-        println("SECTION 104 " + buyTransaction.remainingQuantity + " added to the Section 104 holding on " +
-                buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit price of the purchased " +
-                " shares was " + buyTransaction.getAverageUnitPrice() + " GBP.")
+
+        val proportionOfUnitsMessage = if (buyTransaction.initialQuantity != buyTransaction.remainingQuantity) {
+            "${buyTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+        } else "All ${buyTransaction.initialQuantity}"
+
+        println("SECTION 104 ADDITION - $proportionOfUnitsMessage units purchased on " +
+                "${buyTransaction.getTransactionDateAndIdsMessage()}were added to the Section 104 holding. " +
+                "The average unit price of the purchased shares was ${buyTransaction.getAverageUnitPrice()} GBP.")
     }
 
     /**
@@ -110,7 +115,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
             return
         }
 
-        val summary = "SECTION 104 - " + getProportionOfUnitsSoldMessage(section104.quantity, sellTransaction) +
+        val summary = "SECTION 104 DISPOSAL - " + getProportionOfUnitsSoldMessage(section104.quantity, sellTransaction) +
                 getProportionOfUnitsBoughtMessage(section104, sellTransaction) + " units in the Section 104 holding. " +
                 "The average unit price of the Section 104 holding was " + section104.getAverageUnitPrice() +
                 " GBP " + getUnitPriceOfSoldSharesMessage(sellTransaction)

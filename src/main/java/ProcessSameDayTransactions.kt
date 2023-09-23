@@ -32,6 +32,6 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * @param sellTransaction The Transaction object associated with the sales for a given day
      */
     private fun reportSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        println("SAME DAY - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
+        println("SAME DAY DISPOSAL - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

@@ -40,6 +40,6 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * @param sellTransaction The Transaction object associated with the sales for a given day
      */
     private fun reportBedAndBreakfastTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        println("BED AND BREAKFAST - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
+        println("BED AND BREAKFAST DISPOSAL - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

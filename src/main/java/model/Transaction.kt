@@ -15,7 +15,7 @@ data class Transaction(
     var currency: String = "GBP"
 ) {
     fun getTransactionDateAndIdsMessage(): String {
-        val pluralIndicator = if (transactionIds.size == 1) "s"
+        val pluralIndicator = if (transactionIds.size != 1) "s"
         else ""
 
         return "$date (transaction ID$pluralIndicator $transactionIds) "
