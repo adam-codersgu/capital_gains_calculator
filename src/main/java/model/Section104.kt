@@ -1,5 +1,8 @@
 package model
 
+import java.math.BigDecimal
+import java.math.RoundingMode
+
 data class Section104(
     var transactionIDs: MutableList<String> = mutableListOf(),
     var quantity: Int = 0,
@@ -13,6 +16,6 @@ data class Section104(
     }
 
     fun getAverageUnitPrice(): Double {
-        return price / quantity
+        return BigDecimal(price / quantity).setScale(9, RoundingMode.HALF_EVEN).toDouble()
     }
 }

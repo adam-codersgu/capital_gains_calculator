@@ -146,7 +146,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
     }
 
     private fun getProportionOfUnitsBoughtMessage(section104: Section104, sellTransaction: Transaction) : String {
-        return if (sellTransaction.initialQuantity < section104.quantity) {
+        return if (sellTransaction.remainingQuantity < section104.quantity) {
             "${sellTransaction.remainingQuantity} of the ${section104.quantity}"
         } else {
             "all ${section104.quantity}"

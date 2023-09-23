@@ -1,5 +1,7 @@
 package model
 
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 
 data class Transaction(
@@ -22,6 +24,6 @@ data class Transaction(
     }
 
     fun getAverageUnitPrice(): Double {
-        return initialValue / initialQuantity
+        return BigDecimal(initialValue / initialQuantity).setScale(9, RoundingMode.HALF_EVEN).toDouble()
     }
 }

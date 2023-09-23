@@ -97,13 +97,17 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
     }
 
     protected fun getProportionOfUnitsSoldMessage(remainingBuyQuantity: Int, sellTransaction: Transaction) : String {
-        val messageBeginning = if (remainingBuyQuantity < sellTransaction.remainingQuantity ||
-            sellTransaction.initialQuantity != sellTransaction.remainingQuantity) {
-            "$remainingBuyQuantity of the ${sellTransaction.initialQuantity}"
-        } else {
-            "All ${sellTransaction.initialQuantity}"
+        val messageBeginning = when {
+            remainingBuyQuantity < sellTransaction.remainingQuantity -> {
+                "$remainingBuyQuantity of the ${sellTransaction.initialQuantity}"
+            }
+            sellTransaction.initialQuantity != sellTransaction.remainingQuantity -> {
+                "${sellTransaction.remainingQuantity} of the ${sellTransaction.initialQuantity}"
+            }
+            else -> "All ${sellTransaction.initialQuantity}"
         }
-        return "$messageBeginning units sold on ${sellTransaction.getTransactionDateAndIdsMessage()} " +
+
+        return "$messageBeginning units sold on ${sellTransaction.getTransactionDateAndIdsMessage()}" +
                 "were identified with "
     }
 
