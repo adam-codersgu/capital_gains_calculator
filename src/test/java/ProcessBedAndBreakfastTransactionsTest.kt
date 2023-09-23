@@ -30,6 +30,8 @@ class ProcessBedAndBreakfastTransactionsTest {
             LocalDate.now(),
             "Buy",
             10,
+            10,
+            100.00,
             100.00
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(

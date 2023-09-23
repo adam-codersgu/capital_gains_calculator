@@ -140,14 +140,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private fun addBuyTransaction(row: Row, transactionDate: LocalDate) {
         val transactionType = "Buy"
-        val transactionAmount = -row.getCell(8).numericCellValue
+        val transactionAmount = -getColumn8Value(row)
         val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
         buyTransactions.add(transaction)
     }
 
     private fun addSellTransaction(row: Row, transactionDate: LocalDate) {
         val transactionType = "Sell"
-        val transactionAmount = row.getCell(8).numericCellValue
+        val transactionAmount = getColumn8Value(row)
         val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
         sellTransactions.add(transaction)
     }
@@ -176,7 +176,16 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 + row.rowNum)
         }
 
-        transactionFees += -row.getCell(8).numericCellValue
+        transactionFees += -getColumn8Value(row)
+    }
+
+    private fun getColumn8Value(row: Row): Double {
+        return try {
+            row.getCell(8).numericCellValue
+        } catch (_: java.lang.IllegalStateException) {
+            val value = row.getCell(8).stringCellValue
+            value.replace(",", "").toDouble()
+        }
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
