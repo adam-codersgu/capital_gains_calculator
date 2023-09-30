@@ -15,7 +15,7 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions) {
+        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
             outstandingTransactions.buyTransactions.find {
                 it.date == sellTransaction.date
             }?.let { buyTransaction ->

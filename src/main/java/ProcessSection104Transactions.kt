@@ -58,7 +58,7 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         } else "All ${buyTransaction.initialQuantity}"
 
         println("SECTION 104 ADDITION - $proportionOfUnitsMessage units purchased on " +
-                "${buyTransaction.getTransactionDateAndIdsMessage()}were added to the Section 104 holding. " +
+                "${buyTransaction.getTransactionDateAndIdsMessage()} were added to the Section 104 holding. " +
                 "The average unit price of the purchased shares was ${buyTransaction.getAverageUnitPrice()} GBP.")
     }
 

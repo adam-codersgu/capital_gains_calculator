@@ -108,7 +108,7 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         }
 
         return "$messageBeginning units sold on ${sellTransaction.getTransactionDateAndIdsMessage()}" +
-                "were identified with "
+                " were identified with "
     }
 
     private fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {

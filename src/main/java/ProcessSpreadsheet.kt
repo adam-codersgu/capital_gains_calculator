@@ -189,20 +189,18 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionType = FX_DEBIT
-        val transactionAmount = -row.getCell(8).numericCellValue
+        val transactionAmount = -getColumn8Value(row)
 
         val transaction = buildFXTransaction(row, transactionDate,
-            transactionType, transactionAmount)
+            FX_DEBIT, transactionAmount)
         fxTransactions.add(transaction)
     }
 
     private fun addFxCreditTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionType = FX_CREDIT
-        val transactionAmount = row.getCell(8).numericCellValue
+        val transactionAmount = getColumn8Value(row)
 
         val transaction = buildFXTransaction(row, transactionDate,
-            transactionType, transactionAmount)
+            FX_CREDIT, transactionAmount)
         fxTransactions.add(transaction)
     }
 
@@ -268,6 +266,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
+                    initialValue = it.amount,
                     remainingValue = it.amount
                 )
                 buyTransactions.remove(transaction)
@@ -293,6 +292,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
+                    initialValue = it.amount,
                     remainingValue = it.amount
                 )
                 sellTransactions.remove(transaction)

@@ -15,7 +15,7 @@ class ProcessBedAndBreakfastTransactions(outstandingTransactions: OutstandingTra
      * transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        for (sellTransaction in outstandingTransactions.sellTransactions) {
+        for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
             // Look for buy transactions that occurred up to 30 days following the disposal.
             val maxDate = sellTransaction.date.plusDays(31)
 
