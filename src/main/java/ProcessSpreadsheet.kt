@@ -17,6 +17,10 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import kotlin.system.exitProcess
 
+/**
+ * TODO - We need a test for this class that confirms the value of the outstanding buy/sell
+ *      transactions are updated accordingly after merging FX amounts.
+ */
 class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104: Section104) {
 
     companion object {

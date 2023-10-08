@@ -112,10 +112,14 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
     }
 
     private fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
-        return if (sellTransaction.initialQuantity < buyTransaction.initialQuantity || buyTransaction.initialQuantity != buyTransaction.remainingQuantity) {
-            "${sellTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
-        } else {
-            "all ${buyTransaction.initialQuantity}"
+        return when {
+            sellTransaction.remainingQuantity < buyTransaction.remainingQuantity -> {
+                "${sellTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+            }
+            buyTransaction.initialQuantity != buyTransaction.remainingQuantity -> {
+                "${buyTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+            }
+            else -> "all ${buyTransaction.initialQuantity}"
         }
     }
 
