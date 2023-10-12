@@ -35,13 +35,18 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
     private fun getProfitOrLossMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
         updateOutstandingTransactions(buyTransaction, sellTransaction)
-        return if (profitOrLoss >= 0) {
-            outstandingTransactions.totalGains += profitOrLoss
-            "Profit = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}"
-        } else {
-            outstandingTransactions.totalLoss += profitOrLoss
-            "Loss = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}"
-        }
+        return if (profitOrLoss >= 0) getProfitMessage(profitOrLoss)
+        else getLossMessage(profitOrLoss)
+    }
+
+    protected fun getProfitMessage(profit: Double): String {
+        outstandingTransactions.totalGains += profit
+        return "Profit = £${roundAmountToTwoDecimalPlaces(profit)}."
+    }
+
+    protected fun getLossMessage(loss: Double): String {
+        outstandingTransactions.totalLoss += loss
+        return "Loss = £${roundAmountToTwoDecimalPlaces(loss)}."
     }
 
     protected fun roundAmountToTwoDecimalPlaces(amount: Double): String {

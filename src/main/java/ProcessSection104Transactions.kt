@@ -130,13 +130,8 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
             outstandingTransactions.sellTransactions.add(sellTransaction)
         }
 
-        if (profitOrLoss >= 0) {
-            println(summary + "Profit = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}.")
-            outstandingTransactions.totalGains += profitOrLoss
-        } else {
-            println(summary + "Loss = £${roundAmountToTwoDecimalPlaces(profitOrLoss)}.")
-            outstandingTransactions.totalLoss += profitOrLoss
-        }
+        if (profitOrLoss >= 0) println(summary + getProfitMessage(profitOrLoss))
+        else println(summary + getLossMessage(profitOrLoss))
 
         if (section104.quantity - disposalQuantity == 0) section104.clear()
         else {
