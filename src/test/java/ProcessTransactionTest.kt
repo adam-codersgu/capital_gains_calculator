@@ -34,27 +34,29 @@ class ProcessTransactionTest {
             LocalDate.now(),
             "Buy",
             10,
+            10,
+            100.00,
             100.00
         )
         private val BUY_TRANSACTION_2 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(1),
-            quantity = 200,
-            amount = 3500.45
+            remainingQuantity = 200,
+            remainingValue = 3500.45
         )
         private val BUY_TRANSACTION_3 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(3),
-            quantity = 15,
-            amount = 120.10
+            remainingQuantity = 15,
+            remainingValue = 120.10
         )
         private val BUY_TRANSACTION_4 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(4),
-            quantity = 20,
-            amount = 432.23
+            remainingQuantity = 20,
+            remainingValue = 432.23
         )
         private val BUY_TRANSACTION_5 = BUY_TRANSACTION_1.copy(
             date = LocalDate.now().minusDays(6),
-            quantity = 25,
-            amount = 467.20
+            remainingQuantity = 25,
+            remainingValue = 467.20
         )
 
         private val SELL_TRANSACTION_1 = BUY_TRANSACTION_1.copy(
@@ -62,13 +64,13 @@ class ProcessTransactionTest {
         )
         private val SELL_TRANSACTION_2 = BUY_TRANSACTION_2.copy(
             type = "Sell",
-            quantity = 100,
-            amount = 250.00
+            remainingQuantity = 100,
+            remainingValue = 250.00
         )
         private val SELL_TRANSACTION_3 = BUY_TRANSACTION_3.copy(
             type = "Sell",
-            quantity = 30,
-            amount = 250.00
+            remainingQuantity = 30,
+            remainingValue = 250.00
         )
         private val SELL_TRANSACTION_4 = BUY_TRANSACTION_4.copy(
             type = "Sell",
@@ -77,7 +79,7 @@ class ProcessTransactionTest {
         private val SELL_TRANSACTION_5 = BUY_TRANSACTION_5.copy(
             type = "Sell",
             date = LocalDate.now().minusDays(7),
-            amount = 485.23
+            remainingValue = 485.23
         )
     }
 
@@ -136,47 +138,47 @@ class ProcessTransactionTest {
         val profitOrLoss: Double
         when {
             // Quantity purchased and sold are equal
-            sellTransaction.quantity == buyTransaction.quantity -> {
-                profitOrLoss = sellTransaction.amount - buyTransaction.amount
-                assertEquals(sellTransaction.amount - buyTransaction.amount, profitOrLoss)
+            sellTransaction.remainingQuantity == buyTransaction.remainingQuantity -> {
+                profitOrLoss = sellTransaction.remainingValue - buyTransaction.remainingValue
+                assertEquals(sellTransaction.remainingValue - buyTransaction.remainingValue, profitOrLoss)
             }
             // Quantity sold is greater than the quantity purchased
-            sellTransaction.quantity > buyTransaction.quantity -> {
-                val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
-                        sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
+            sellTransaction.remainingQuantity > buyTransaction.remainingQuantity -> {
+                val percentageOfSoldSharesRemaining = buyTransaction.remainingQuantity.toDouble() /
+                        sellTransaction.remainingQuantity.toDouble()
+                val valueOfSoldShares = sellTransaction.remainingValue * percentageOfSoldSharesRemaining
                 val index = outstandingTransactions.sellTransactions.indexOf(sellTransaction)
-                outstandingTransactions.sellTransactions[index].quantity -= buyTransaction.quantity
-                outstandingTransactions.sellTransactions[index].amount -= valueOfSoldShares
+                outstandingTransactions.sellTransactions[index].remainingQuantity -= buyTransaction.remainingQuantity
+                outstandingTransactions.sellTransactions[index].remainingValue -= valueOfSoldShares
                 assertEquals(
-                    sellTransaction.quantity - buyTransaction.quantity,
-                    outstandingTransactions.sellTransactions[index].quantity
+                    sellTransaction.remainingQuantity - buyTransaction.remainingQuantity,
+                    outstandingTransactions.sellTransactions[index].remainingQuantity
                 )
                 assertEquals(
-                    String.format("%.2f", sellTransaction.amount * percentageOfSoldSharesRemaining),
-                    String.format("%.2f", outstandingTransactions.sellTransactions[index].amount)
+                    String.format("%.2f", sellTransaction.remainingValue * percentageOfSoldSharesRemaining),
+                    String.format("%.2f", outstandingTransactions.sellTransactions[index].remainingValue)
                 )
-                profitOrLoss = valueOfSoldShares - buyTransaction.amount
-                assertEquals(valueOfSoldShares - buyTransaction.amount, profitOrLoss)
+                profitOrLoss = valueOfSoldShares - buyTransaction.remainingValue
+                assertEquals(valueOfSoldShares - buyTransaction.remainingValue, profitOrLoss)
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
-                val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
-                        buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
+                val percentageOfPurchasedSharesRemaining = sellTransaction.remainingQuantity.toDouble() /
+                        buyTransaction.remainingQuantity.toDouble()
+                val valueOfPurchasedShares = buyTransaction.remainingValue * percentageOfPurchasedSharesRemaining
                 val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
-                outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
-                outstandingTransactions.buyTransactions[index].amount -= valueOfPurchasedShares
+                outstandingTransactions.buyTransactions[index].remainingQuantity -= sellTransaction.remainingQuantity
+                outstandingTransactions.buyTransactions[index].remainingValue -= valueOfPurchasedShares
                 assertEquals(
-                    buyTransaction.quantity - sellTransaction.quantity,
-                    outstandingTransactions.buyTransactions[index].quantity
+                    buyTransaction.remainingQuantity - sellTransaction.remainingQuantity,
+                    outstandingTransactions.buyTransactions[index].remainingQuantity
                 )
                 assertEquals(
-                    String.format("%.2f", buyTransaction.amount * percentageOfPurchasedSharesRemaining),
-                    String.format("%.2f", outstandingTransactions.buyTransactions[index].amount)
+                    String.format("%.2f", buyTransaction.remainingValue * percentageOfPurchasedSharesRemaining),
+                    String.format("%.2f", outstandingTransactions.buyTransactions[index].remainingValue)
                 )
-                profitOrLoss = sellTransaction.amount - valueOfPurchasedShares
-                assertEquals(sellTransaction.amount - valueOfPurchasedShares, profitOrLoss)
+                profitOrLoss = sellTransaction.remainingValue - valueOfPurchasedShares
+                assertEquals(sellTransaction.remainingValue - valueOfPurchasedShares, profitOrLoss)
             }
         }
     }
@@ -196,32 +198,32 @@ class ProcessTransactionTest {
 
         when {
             // Quantity purchased and sold are equal
-            sellTransaction.quantity == buyTransaction.quantity -> {
+            sellTransaction.remainingQuantity == buyTransaction.remainingQuantity -> {
                 assertTrue(outstandingTransactions.buyTransactions.remove(buyTransaction))
                 assertTrue(outstandingTransactions.sellTransactions.remove(sellTransaction))
             }
             // Quantity sold is greater than the quantity purchased
-            sellTransaction.quantity > buyTransaction.quantity -> {
-                val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
-                        sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
+            sellTransaction.remainingQuantity > buyTransaction.remainingQuantity -> {
+                val percentageOfSoldSharesRemaining = buyTransaction.remainingQuantity.toDouble() /
+                        sellTransaction.remainingQuantity.toDouble()
+                val valueOfSoldShares = sellTransaction.remainingValue * percentageOfSoldSharesRemaining
                 val index = outstandingTransactions.sellTransactions.indexOf(sellTransaction)
-                outstandingTransactions.sellTransactions[index].quantity -= buyTransaction.quantity
-                assertEquals(outstandingTransactions.sellTransactions[index].quantity, buyTransaction.quantity)
-                outstandingTransactions.sellTransactions[index].amount -= valueOfSoldShares
-                assertEquals(outstandingTransactions.sellTransactions[index].amount, valueOfSoldShares)
+                outstandingTransactions.sellTransactions[index].remainingQuantity -= buyTransaction.remainingQuantity
+                assertEquals(outstandingTransactions.sellTransactions[index].remainingQuantity, buyTransaction.remainingQuantity)
+                outstandingTransactions.sellTransactions[index].remainingValue -= valueOfSoldShares
+                assertEquals(outstandingTransactions.sellTransactions[index].remainingValue, valueOfSoldShares)
                 assertTrue(outstandingTransactions.buyTransactions.remove(buyTransaction))
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
-                val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
-                        buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
+                val percentageOfPurchasedSharesRemaining = sellTransaction.remainingQuantity.toDouble() /
+                        buyTransaction.remainingQuantity.toDouble()
+                val valueOfPurchasedShares = buyTransaction.remainingValue * percentageOfPurchasedSharesRemaining
                 val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
-                outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
-                assertEquals(outstandingTransactions.buyTransactions[index].quantity, sellTransaction.quantity)
-                outstandingTransactions.buyTransactions[index].amount -= valueOfPurchasedShares
-                assertEquals(outstandingTransactions.buyTransactions[index].amount, valueOfPurchasedShares)
+                outstandingTransactions.buyTransactions[index].remainingQuantity -= sellTransaction.remainingQuantity
+                assertEquals(outstandingTransactions.buyTransactions[index].remainingQuantity, sellTransaction.remainingQuantity)
+                outstandingTransactions.buyTransactions[index].remainingValue -= valueOfPurchasedShares
+                assertEquals(outstandingTransactions.buyTransactions[index].remainingValue, valueOfPurchasedShares)
                 assertTrue( outstandingTransactions.sellTransactions.remove(sellTransaction))
             }
         }

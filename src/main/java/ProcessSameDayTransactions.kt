@@ -4,6 +4,7 @@ import model.Transaction
 
 class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransactions) : ProcessTransaction(outstandingTransactions) {
 
+    // TODO - Test case would be that buy/sell transactions with different dates are not processed here
     /**
      * Match all same day asset purchases and disposals.
      * Same day disposals have top priority when matching transactions for an HMRC
@@ -13,15 +14,13 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * and lists of outstanding Buy and Sell Transaction objects after all same day
      * transactions have been processed.
      */
-    override
-    fun process(): OutstandingTransactions {
+    override fun process(): OutstandingTransactions {
         for (sellTransaction in outstandingTransactions.sellTransactions.toList()) {
-            val buyTransaction = outstandingTransactions.buyTransactions.find {
+            outstandingTransactions.buyTransactions.find {
                 it.date == sellTransaction.date
-            }?.copy()
-
-            // A buy transaction occurred on the same day as the sell transaction
-            if (buyTransaction != null) reportSameDayTransaction(buyTransaction, sellTransaction.copy())
+            }?.let { buyTransaction ->
+                reportSameDayTransaction(buyTransaction.copy(), sellTransaction.copy())
+            }
         }
         return outstandingTransactions
     }
@@ -33,16 +32,6 @@ class ProcessSameDayTransactions(outstandingTransactions: OutstandingTransaction
      * @param sellTransaction The Transaction object associated with the sales for a given day
      */
     private fun reportSameDayTransaction(buyTransaction: Transaction, sellTransaction: Transaction) {
-        val profitOrLossMessage = super.getProfitOrLoss(buyTransaction, sellTransaction)
-        val averageSellPrice = sellTransaction.amount / sellTransaction.quantity
-        val averageBuyPrice = buyTransaction.amount / buyTransaction.quantity
-
-        val output = "SAME DAY Sell ${sellTransaction.getTransactionIdsMessage()} " +
-                "identified with buy ${buyTransaction.getTransactionIdsMessage()} " +
-                "on " + buyTransaction.date + ". " + buyTransaction.quantity +
-                " shares were bought for an average price of $averageBuyPrice GBP and " +
-                sellTransaction.quantity + " shares were sold for an average price of $averageSellPrice " +
-                "GBP. $profitOrLossMessage"
-        println(output)
+        println("SAME DAY DISPOSAL - " + getTransactionIdentificationMessage(buyTransaction, sellTransaction))
     }
 }

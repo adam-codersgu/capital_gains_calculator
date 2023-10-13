@@ -2,8 +2,7 @@
 import model.OutstandingTransactions
 import model.Section104
 import model.Transaction
-import java.math.BigDecimal
-import java.math.RoundingMode
+import kotlin.math.min
 
 class ProcessSection104Transactions(outstandingTransactions: OutstandingTransactions,
                                     private val section104: Section104 = Section104())
@@ -19,17 +18,13 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      * bed and breakfast transactions have been processed.
      */
     override fun process(): OutstandingTransactions {
-        // Group all the transactions and sort them in date order
         val allTransactions = (outstandingTransactions.sellTransactions + outstandingTransactions.buyTransactions)
             .sortedBy { it.date }
-        // Clear the existing lists of outstanding transactions
         outstandingTransactions.buyTransactions.clear()
         outstandingTransactions.sellTransactions.clear()
 
         for (transaction in allTransactions) {
-            // Add buy transactions to the Section 104 holding
             if (transaction.type == "Buy") addTransactionToSection104Holding(transaction)
-            // Process sell transactions
             else matchDisposalWithSection104Holding(transaction)
         }
         printSummaryOfSection104()
@@ -50,18 +45,21 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
         // being added to the Section 104 holding
         if (outstandingTransactions.sellTransactions.isNotEmpty()) {
             val remainingBuyTransaction = addPurchasedSharesToOutstandingTransactions(buyTransaction) ?: return
-            buyTransaction.quantity = remainingBuyTransaction.quantity
-            buyTransaction.amount = remainingBuyTransaction.amount
+            buyTransaction.remainingQuantity = remainingBuyTransaction.remainingQuantity
+            buyTransaction.remainingValue = remainingBuyTransaction.remainingValue
         }
 
         section104.transactionIDs.addAll(buyTransaction.transactionIds)
-        section104.quantity += buyTransaction.quantity
-        section104.price += buyTransaction.amount
-        val output = "SECTION 104 " + buyTransaction.quantity + " shares priced at " +
-                buyTransaction.amount / buyTransaction.quantity + " GBP added to the " +
-                "Section 104 holding on " + buyTransaction.date +
-                " (${buyTransaction.getTransactionIdsMessage()})"
-        println(output)
+        section104.quantity += buyTransaction.remainingQuantity
+        section104.price += buyTransaction.remainingValue
+
+        val proportionOfUnitsMessage = if (buyTransaction.initialQuantity != buyTransaction.remainingQuantity) {
+            "${buyTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+        } else "All ${buyTransaction.initialQuantity}"
+
+        println("SECTION 104 ADDITION - $proportionOfUnitsMessage units purchased on " +
+                "${buyTransaction.getTransactionDateAndIdsMessage()} were added to the Section 104 holding. " +
+                "The average unit price of the purchased shares was ${buyTransaction.getAverageUnitPrice()} GBP.")
     }
 
     /**
@@ -77,29 +75,28 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      */
     private fun addPurchasedSharesToOutstandingTransactions(buyTransaction: Transaction): Transaction? {
         var quantityOfOutstandingSoldShares = 0
-        quantityOfOutstandingSoldShares += outstandingTransactions.sellTransactions.sumOf { it.quantity }
-        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.quantity }
+        quantityOfOutstandingSoldShares += outstandingTransactions.sellTransactions.sumOf { it.remainingQuantity }
+        quantityOfOutstandingSoldShares -= outstandingTransactions.buyTransactions.sumOf { it.remainingQuantity }
 
         return when {
             // No sold shares outstanding. Can add the full buy transaction to the Section 104 holding
             quantityOfOutstandingSoldShares == 0 -> buyTransaction
             // If there are sufficient outstanding sell shares, then add the full buy transaction
-            quantityOfOutstandingSoldShares >= buyTransaction.quantity -> {
+            quantityOfOutstandingSoldShares >= buyTransaction.remainingQuantity -> {
                 outstandingTransactions.buyTransactions.add(buyTransaction)
                 return null
             }
             // Else add only the required buy transaction shares and transfer the rest to the Section 104 holding
             else -> {
-                val averagePurchasePrice = buyTransaction.amount / buyTransaction.quantity
-                val priceOfOutstandingShares = BigDecimal(averagePurchasePrice * quantityOfOutstandingSoldShares)
-                    .setScale(2, RoundingMode.HALF_EVEN).toDouble()
+                val valueOfOutstandingShares = buyTransaction.getAverageUnitPrice() *
+                        quantityOfOutstandingSoldShares
                 val outstandingBuyTransaction = buyTransaction.copy(
-                    quantity = quantityOfOutstandingSoldShares,
-                    amount = priceOfOutstandingShares
+                    remainingQuantity = quantityOfOutstandingSoldShares,
+                    remainingValue = valueOfOutstandingShares
                 )
                 outstandingTransactions.buyTransactions.add(outstandingBuyTransaction)
-                buyTransaction.quantity -= quantityOfOutstandingSoldShares
-                buyTransaction.amount -= priceOfOutstandingShares
+                buyTransaction.remainingQuantity -= quantityOfOutstandingSoldShares
+                buyTransaction.remainingValue -= valueOfOutstandingShares
                 buyTransaction
             }
         }
@@ -112,63 +109,43 @@ class ProcessSection104Transactions(outstandingTransactions: OutstandingTransact
      * @param sellTransaction The Transaction object associated with the disposals for a given day
      */
     private fun matchDisposalWithSection104Holding(sellTransaction: Transaction) {
-        // If the Section 104 holding is empty then add the disposal to the OutstandingTransactions object.
+        // If the Section 104 holding is empty then add the disposal to the outstanding transactions list.
         if (section104.quantity == 0) {
             outstandingTransactions.sellTransactions.add(sellTransaction)
             return
         }
 
-        // Cannot match more shares than exist in the Section 104 holding
-        val disposalQuantityToBeMatched = if (sellTransaction.quantity >= section104.quantity) section104.quantity
-        else sellTransaction.quantity
+        val summary = "SECTION 104 DISPOSAL - " + getProportionOfUnitsSoldMessage(section104.quantity, sellTransaction) +
+                getProportionOfUnitsBoughtMessage(section104, sellTransaction) + " units in the Section 104 holding. " +
+                "The average unit price of the Section 104 holding was " + section104.getAverageUnitPrice() +
+                " GBP " + getUnitPriceOfSoldSharesMessage(sellTransaction)
 
-        val averageDisposalPrice = sellTransaction.amount / sellTransaction.quantity
-        val averagePurchasePrice = section104.price / section104.quantity
+        val disposalQuantity = min(sellTransaction.remainingQuantity, section104.quantity)
+        val profitOrLoss = (sellTransaction.getAverageUnitPrice() - section104.getAverageUnitPrice()) *
+                disposalQuantity
 
-        val summary = "SECTION 104 $disposalQuantityToBeMatched shares from sell " +
-                sellTransaction.getTransactionIdsMessage() + " dated " + sellTransaction.date + " identified with " +
-                "the Section 104 holding. The average price of the sold shares was $averageDisposalPrice GBP, " +
-                "and the average price of the shares in the Section 104 holding was $averagePurchasePrice GBP. "
-
-        val totalDisposalPrice = averageDisposalPrice * disposalQuantityToBeMatched
-        val totalPurchasePrice = averagePurchasePrice * disposalQuantityToBeMatched
-        val profitOrLoss = totalDisposalPrice - totalPurchasePrice
-        printTransactionSummary(profitOrLoss, summary)
-
-        // There were insufficient shares in the Section 104 holding to match the full disposal
-        if (sellTransaction.quantity > section104.quantity) {
-            sellTransaction.quantity -= section104.quantity
-            sellTransaction.amount -= totalDisposalPrice
+        if (sellTransaction.remainingQuantity > section104.quantity) {
+            sellTransaction.remainingQuantity -= disposalQuantity
+            sellTransaction.remainingValue -= (sellTransaction.getAverageUnitPrice() * disposalQuantity)
             outstandingTransactions.sellTransactions.add(sellTransaction)
         }
 
-        // Remove the matched shares from the Section 104 holding
-        section104.quantity -= disposalQuantityToBeMatched
-        section104.price -= totalPurchasePrice
+        if (profitOrLoss >= 0) println(summary + getProfitMessage(profitOrLoss))
+        else println(summary + getLossMessage(profitOrLoss))
 
-        // If all shares in the Section 104 holding have been sold, then reset the Section104 object
-        if (section104.quantity == 0) section104.clear()
+        if (section104.quantity - disposalQuantity == 0) section104.clear()
+        else {
+            section104.price -= (section104.getAverageUnitPrice() * disposalQuantity)
+            section104.quantity -= disposalQuantity
+        }
     }
 
-    /**
-     * Prints a summary of a disposal that is matched against shares in the Section 104 holding.
-     * The transaction summary includes the profit or loss resulting from the disposal.
-     *
-     * @param profitOrLoss The profit or loss incurred from the disposal.
-     * @param summary The transaction summary (excluding the profit/loss summary)
-     */
-    private fun printTransactionSummary(profitOrLoss: Double, summary: String) {
-        val profitOrLossRounded = BigDecimal(profitOrLoss)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        val profitOrLossSummary: String
-        if (profitOrLoss >= 0) {
-            profitOrLossSummary = "Profit = £$profitOrLossRounded."
-            outstandingTransactions.totalGains += profitOrLoss
+    private fun getProportionOfUnitsBoughtMessage(section104: Section104, sellTransaction: Transaction) : String {
+        return if (sellTransaction.remainingQuantity < section104.quantity) {
+            "${sellTransaction.remainingQuantity} of the ${section104.quantity}"
         } else {
-            profitOrLossSummary = "Loss = £$profitOrLossRounded."
-            outstandingTransactions.totalLoss += profitOrLoss
+            "all ${section104.quantity}"
         }
-        println(summary + profitOrLossSummary)
     }
 
     /**

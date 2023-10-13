@@ -1,4 +1,4 @@
-package logger
+package util
 
 import constants.ErrorConstants.TAG_ROW_SKIPPED
 

@@ -3,6 +3,7 @@ import model.OutstandingTransactions
 import model.Transaction
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.min
 
 abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransactions) {
 
@@ -15,6 +16,15 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      */
     abstract fun process() : OutstandingTransactions
 
+    protected fun getTransactionIdentificationMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
+        return getProportionOfUnitsSoldMessage(buyTransaction.remainingQuantity, sellTransaction) +
+                getProportionOfUnitsBoughtMessage(buyTransaction, sellTransaction) +
+                " units bought on " + buyTransaction.getTransactionDateAndIdsMessage() + ". The average unit" +
+                " price of the purchased shares was " + buyTransaction.getAverageUnitPrice() + " GBP " +
+                getUnitPriceOfSoldSharesMessage(sellTransaction) +
+                getProfitOrLossMessage(buyTransaction, sellTransaction)
+    }
+
     /**
      * Returns a summary of the profit or loss resulting from a given transaction.
      *
@@ -22,17 +32,25 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      * @param sellTransaction The Transaction object associated with the sales for a given day
      * @return A String describing the profit or loss incurred from the transactions
      */
-    fun getProfitOrLoss(buyTransaction: Transaction, sellTransaction: Transaction): String {
+    private fun getProfitOrLossMessage(buyTransaction: Transaction, sellTransaction: Transaction): String {
         val profitOrLoss = calculateProfitLoss(buyTransaction, sellTransaction)
-        val profitOrLossRounded = BigDecimal(profitOrLoss)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        return if (profitOrLoss >= 0) {
-            outstandingTransactions.totalGains += profitOrLoss
-            "Profit = £$profitOrLossRounded"
-        } else {
-            outstandingTransactions.totalLoss += profitOrLoss
-            "Loss = £$profitOrLossRounded"
-        }
+        updateOutstandingTransactions(buyTransaction, sellTransaction)
+        return if (profitOrLoss >= 0) getProfitMessage(profitOrLoss)
+        else getLossMessage(profitOrLoss)
+    }
+
+    protected fun getProfitMessage(profit: Double): String {
+        outstandingTransactions.totalGains += profit
+        return "Profit = £${roundAmountToTwoDecimalPlaces(profit)}."
+    }
+
+    protected fun getLossMessage(loss: Double): String {
+        outstandingTransactions.totalLoss += loss
+        return "Loss = £${roundAmountToTwoDecimalPlaces(loss)}."
+    }
+
+    protected fun roundAmountToTwoDecimalPlaces(amount: Double): String {
+        return BigDecimal(amount).setScale(2, RoundingMode.HALF_EVEN).toString()
     }
 
     /**
@@ -43,27 +61,13 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      * @return A Double representing the profit or loss incurred from the transactions
      */
     private fun calculateProfitLoss(buyTransaction: Transaction, sellTransaction: Transaction): Double {
-        val profitOrLoss: Double
-        when {
-            sellTransaction.quantity == buyTransaction.quantity -> {
-                profitOrLoss = sellTransaction.amount - buyTransaction.amount
-            }
-            sellTransaction.quantity > buyTransaction.quantity -> {
-                val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
-                        sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
-                profitOrLoss = valueOfSoldShares - buyTransaction.amount
-            }
-            // Quantity purchased is greater than the quantity sold
-            else -> {
-                val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
-                        buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
-                profitOrLoss = sellTransaction.amount - valueOfPurchasedShares
-            }
+        return if (sellTransaction.remainingQuantity == buyTransaction.remainingQuantity) {
+            sellTransaction.remainingValue - buyTransaction.remainingValue
+        } else {
+            val quantitySold = min(buyTransaction.remainingQuantity, sellTransaction.remainingQuantity)
+            (sellTransaction.getAverageUnitPrice() - buyTransaction.getAverageUnitPrice()) *
+                    quantitySold
         }
-        updateOutstandingTransactions(buyTransaction, sellTransaction)
-        return profitOrLoss
     }
 
     /**
@@ -75,29 +79,62 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
      */
     private fun updateOutstandingTransactions(buyTransaction: Transaction, sellTransaction: Transaction) {
         when {
-            sellTransaction.quantity == buyTransaction.quantity -> {
+            sellTransaction.remainingQuantity == buyTransaction.remainingQuantity -> {
                 outstandingTransactions.buyTransactions.remove(buyTransaction)
                 outstandingTransactions.sellTransactions.remove(sellTransaction)
             }
-            sellTransaction.quantity > buyTransaction.quantity -> {
-                val percentageOfSoldSharesRemaining = buyTransaction.quantity.toDouble() /
-                        sellTransaction.quantity.toDouble()
-                val valueOfSoldShares = sellTransaction.amount * percentageOfSoldSharesRemaining
+            sellTransaction.remainingQuantity > buyTransaction.remainingQuantity -> {
+                val valueOfSoldShares = sellTransaction.getAverageUnitPrice() * buyTransaction.remainingQuantity
                 val index = outstandingTransactions.sellTransactions.indexOf(sellTransaction)
-                outstandingTransactions.sellTransactions[index].quantity -= buyTransaction.quantity
-                outstandingTransactions.sellTransactions[index].amount -= valueOfSoldShares
+                outstandingTransactions.sellTransactions[index].remainingQuantity -= buyTransaction.remainingQuantity
+                outstandingTransactions.sellTransactions[index].remainingValue -= valueOfSoldShares
                 outstandingTransactions.buyTransactions.remove(buyTransaction)
             }
             // Quantity purchased is greater than the quantity sold
             else -> {
-                val percentageOfPurchasedSharesRemaining = sellTransaction.quantity.toDouble() /
-                        buyTransaction.quantity.toDouble()
-                val valueOfPurchasedShares = buyTransaction.amount * percentageOfPurchasedSharesRemaining
+                val valueOfPurchasedShares = buyTransaction.getAverageUnitPrice() * sellTransaction.remainingQuantity
                 val index = outstandingTransactions.buyTransactions.indexOf(buyTransaction)
-                outstandingTransactions.buyTransactions[index].quantity -= sellTransaction.quantity
-                outstandingTransactions.buyTransactions[index].amount -= valueOfPurchasedShares
+                outstandingTransactions.buyTransactions[index].remainingQuantity -= sellTransaction.remainingQuantity
+                outstandingTransactions.buyTransactions[index].remainingValue -= valueOfPurchasedShares
                 outstandingTransactions.sellTransactions.remove(sellTransaction)
             }
         }
+    }
+
+    protected fun getProportionOfUnitsSoldMessage(remainingBuyQuantity: Int, sellTransaction: Transaction) : String {
+        val messageBeginning = when {
+            remainingBuyQuantity < sellTransaction.remainingQuantity -> {
+                "$remainingBuyQuantity of the ${sellTransaction.initialQuantity}"
+            }
+            sellTransaction.initialQuantity != sellTransaction.remainingQuantity -> {
+                "${sellTransaction.remainingQuantity} of the ${sellTransaction.initialQuantity}"
+            }
+            else -> "All ${sellTransaction.initialQuantity}"
+        }
+
+        return "$messageBeginning units sold on ${sellTransaction.getTransactionDateAndIdsMessage()}" +
+                " were identified with "
+    }
+
+    private fun getProportionOfUnitsBoughtMessage(buyTransaction: Transaction, sellTransaction: Transaction) : String {
+        return when {
+            sellTransaction.remainingQuantity < buyTransaction.remainingQuantity -> {
+                "${sellTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+            }
+            buyTransaction.initialQuantity != buyTransaction.remainingQuantity -> {
+                "${buyTransaction.remainingQuantity} of the ${buyTransaction.initialQuantity}"
+            }
+            else -> "all ${buyTransaction.initialQuantity}"
+        }
+    }
+
+    protected fun getUnitPriceOfSoldSharesMessage(sellTransaction: Transaction): String {
+        return "and the average unit price of the sold shares was ${sellTransaction.getAverageUnitPrice()} GBP. "
+    }
+
+    protected fun getUpToDateSellTransactionByTransactionIds(transactionIds: List<String>): Transaction {
+        return outstandingTransactions.sellTransactions.find {
+            it.transactionIds == transactionIds
+        }?.copy() ?: throw Exception("Could not find sell transaction ID $transactionIds")
     }
 }

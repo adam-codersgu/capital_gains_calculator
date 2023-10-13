@@ -1,13 +1,13 @@
 
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
-import logger.ErrorLogger
 import model.FXTransaction
 import model.Section104
 import model.Transaction
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import util.ErrorLogger
 import java.io.File
 import java.io.FileInputStream
 import java.math.BigDecimal
@@ -17,10 +17,16 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import kotlin.system.exitProcess
 
-class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Section104) {
+/**
+ * TODO - We need a test for this class that confirms the value of the outstanding buy/sell
+ *      transactions are updated accordingly after merging FX amounts.
+ */
+class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104: Section104) {
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
+        private const val FX_CREDIT = "FX Credit"
+        private const val FX_DEBIT = "FX Debit"
     }
 
     private val buyTransactions = mutableListOf<Transaction>()
@@ -31,8 +37,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
     private val fxTransactionDescriptions = listOf(
         "DEGIRO Transaction and/or third party fees",
-        "FX Credit",
-        "FX Debit"
+        FX_CREDIT,
+        FX_DEBIT
     )
 
     init {
@@ -95,12 +101,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
             // TODO: Note foreign currency dividends can't be processed (I don't think)
             //  Print a warning to the console about dividends in foreign currencies?
+            //  15/09/2023 Dividend functionality should not be enabled at all.
             when (getTransactionType(transactionDescription)) {
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
                 "DEGIRO Transaction and/or third party fees" -> addTransactionFee(row)
-                "FX Credit" -> addFxCreditTransaction(row, transactionDate)
-                "FX Debit" -> addFxDebitTransaction(row, transactionDate)
+                FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
+                FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -114,10 +121,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         val sellTransactionsSharingId = sellTransactions.groupBy { it.transactionIds }.values.filter { it.size > 1 }
         mergeSellTransactions(sellTransactionsSharingId)
 
-        val fxCreditTransactions = fxTransactions.filter { it.type == "FX Credit" &&
+        val fxCreditTransactions = fxTransactions.filter { it.type == FX_CREDIT &&
                 !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
         mergeFxTransactions(fxCreditTransactions)
-        val fxDebitTransactions = fxTransactions.filter { it.type == "FX Debit" &&
+        val fxDebitTransactions = fxTransactions.filter { it.type == FX_DEBIT &&
                 !it.transactionId.isNullOrBlank() }.groupBy { it.transactionId }.values.filter { it.size > 1 }
         mergeFxTransactions(fxDebitTransactions)
         integrateFxValuesForBuyTransactions()
@@ -136,31 +143,28 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
     private fun getTransactionId(row: Row): String = row.getCell(11).stringCellValue
 
     private fun addBuyTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionDescription = getTransactionDescription(row)
-        val transactionId = getTransactionId(row)
         val transactionType = "Buy"
-        val transactionQuantity = getTransactionQuantity(transactionDescription)
-        val transactionAmount = -row.getCell(8).numericCellValue
-        val transactionCurrency = getTransactionCurrency(row)
-
-        val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity,
-            transactionAmount, transactionCurrency)
+        val transactionAmount = -getColumn8Value(row)
+        val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
         buyTransactions.add(transaction)
     }
 
     private fun addSellTransaction(row: Row, transactionDate: LocalDate) {
+        val transactionType = "Sell"
+        val transactionAmount = getColumn8Value(row)
+        val transaction = buildTransaction(row, transactionDate, transactionType, transactionAmount)
+        sellTransactions.add(transaction)
+    }
+
+    private fun buildTransaction(row: Row, date: LocalDate, type: String, amount: Double): Transaction {
         val transactionDescription = getTransactionDescription(row)
         val transactionId = getTransactionId(row)
-        val transactionType = "Sell"
         val transactionQuantity = getTransactionQuantity(transactionDescription)
-        val transactionAmount = row.getCell(8).numericCellValue
         val transactionCurrency = getTransactionCurrency(row)
 
-        val transaction = Transaction(mutableListOf(transactionId),
-            transactionDate, transactionType, transactionQuantity,
-            transactionAmount, transactionCurrency)
-        sellTransactions.add(transaction)
+        return Transaction(mutableListOf(transactionId),
+            date, type, transactionQuantity, transactionQuantity,
+            amount, amount, transactionCurrency)
     }
 
     /**
@@ -176,76 +180,83 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
                 + row.rowNum)
         }
 
-        transactionFees += -row.getCell(8).numericCellValue
+        transactionFees += -getColumn8Value(row)
+    }
+
+    private fun getColumn8Value(row: Row): Double {
+        return try {
+            row.getCell(8).numericCellValue
+        } catch (_: java.lang.IllegalStateException) {
+            val value = row.getCell(8).stringCellValue
+            value.replace(",", "").toDouble()
+        }
     }
 
     private fun addFxDebitTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionId = getTransactionId(row)
-        val transactionType = "FX Debit"
-        val transactionAmount = -row.getCell(8).numericCellValue
-        val transactionCurrency = getTransactionCurrency(row)
+        val transactionAmount = -getColumn8Value(row)
 
-        val transaction = FXTransaction(transactionId, transactionDate,
-            transactionType, transactionAmount, transactionCurrency)
+        val transaction = buildFXTransaction(row, transactionDate,
+            FX_DEBIT, transactionAmount)
         fxTransactions.add(transaction)
     }
 
     private fun addFxCreditTransaction(row: Row, transactionDate: LocalDate) {
-        val transactionId = getTransactionId(row)
-        val transactionType = "FX Credit"
-        val transactionAmount = row.getCell(8).numericCellValue
-        val transactionCurrency = getTransactionCurrency(row)
+        val transactionAmount = getColumn8Value(row)
 
-        val transaction = FXTransaction(transactionId, transactionDate,
-            transactionType, transactionAmount, transactionCurrency)
+        val transaction = buildFXTransaction(row, transactionDate,
+            FX_CREDIT, transactionAmount)
         fxTransactions.add(transaction)
     }
 
+    private fun buildFXTransaction(row: Row, date: LocalDate, type: String, amount: Double): FXTransaction {
+        val transactionId = getTransactionId(row)
+        val transactionCurrency = getTransactionCurrency(row)
+
+        return FXTransaction(transactionId, date,
+            type, amount, transactionCurrency)
+    }
+
     private fun mergeBuyTransactions(transactions: List<List<Transaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(
-                quantity = 0,
-                amount = 0.00
-            )
-            for (transaction in listOfTransactions) {
-                newTransaction.transactionIds.addAll(transaction.transactionIds)
-                newTransaction.quantity += transaction.quantity
-                newTransaction.amount += transaction.amount
-            }
-            val distinctTransactionIds = newTransaction.transactionIds.toSet()
-            newTransaction.transactionIds.clear()
-            newTransaction.transactionIds.addAll(distinctTransactionIds)
-            buyTransactions.removeAll(listOfTransactions)
-            buyTransactions.add(newTransaction)
+        for (transactionsToMerge in transactions) {
+            buyTransactions.removeAll(transactionsToMerge)
+            buyTransactions.add(mergeTransactions(transactionsToMerge))
         }
     }
 
     private fun mergeSellTransactions(transactions: List<List<Transaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(
-                quantity = 0,
-                amount = 0.00
-            )
-            for (transaction in listOfTransactions) {
-                newTransaction.transactionIds.addAll(transaction.transactionIds)
-                newTransaction.quantity += transaction.quantity
-                newTransaction.amount += transaction.amount
-            }
-            val distinctTransactionIds = newTransaction.transactionIds.toSet()
-            newTransaction.transactionIds.clear()
-            newTransaction.transactionIds.addAll(distinctTransactionIds)
-            sellTransactions.removeAll(listOfTransactions)
-            sellTransactions.add(newTransaction)
+        for (transactionsToMerge in transactions) {
+            sellTransactions.removeAll(transactionsToMerge)
+            sellTransactions.add(mergeTransactions(transactionsToMerge))
         }
     }
 
+    private fun mergeTransactions(transactionsToMerge: List<Transaction>): Transaction {
+        val newTransaction = transactionsToMerge[0].copy(
+            transactionIds = mutableListOf(),
+            initialQuantity = transactionsToMerge.sumOf { it.initialQuantity },
+            remainingQuantity = transactionsToMerge.sumOf { it.remainingQuantity },
+            initialValue = transactionsToMerge.sumOf { it.remainingValue },
+            remainingValue = transactionsToMerge.sumOf { it.remainingValue }
+        )
+
+        if (newTransaction.initialQuantity != newTransaction.remainingQuantity) {
+            throw IllegalStateException("The initial quantity and unmatched quantity of the merged transaction" +
+                    "do not match: $newTransaction")
+        }
+
+        val transactionIds = mutableListOf<String>()
+        transactionsToMerge.forEach {
+            transactionIds.addAll(it.transactionIds)
+        }
+
+        newTransaction.transactionIds.addAll(transactionIds.toSet())
+        return newTransaction
+    }
+
     private fun mergeFxTransactions(transactions: List<List<FXTransaction>>) {
-        for (listOfTransactions in transactions) {
-            val newTransaction = listOfTransactions[0].copy(amount = 0.00)
-            for (transaction in listOfTransactions) {
-                newTransaction.amount += transaction.amount
-            }
-            fxTransactions.removeAll(listOfTransactions)
+        for (transactionsToMerge in transactions) {
+            val newTransaction = transactionsToMerge[0].copy(amount = transactionsToMerge.sumOf { it.amount })
+            fxTransactions.removeAll(transactionsToMerge)
             fxTransactions.add(newTransaction)
         }
     }
@@ -255,15 +266,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
 
         for (transaction in foreignBuyTransactions) {
             fxTransactions.find {
-                it.transactionId == transaction.transactionIds[0] && it.type == "FX Debit"
+                transaction.transactionIds.contains(it.transactionId) && it.type == FX_DEBIT
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
-                    amount = it.amount
+                    initialValue = it.amount,
+                    remainingValue = it.amount
                 )
-                buyTransactions.removeIf { t ->
-                    t.transactionIds.contains(it.transactionId) && t.currency != DEFAULT_CURRENCY
-                }
+                buyTransactions.remove(transaction)
                 buyTransactions.add(newTransaction)
             }
         }
@@ -282,16 +292,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         for (transaction in foreignSellTransactions) {
             fxTransactions.find {
                 transaction.transactionIds.contains(it.transactionId) &&
-                        it.type == "FX Credit"
+                        it.type == FX_CREDIT
             }?.let {
                 val newTransaction = transaction.copy(
                     currency = DEFAULT_CURRENCY,
-                    amount = it.amount
+                    initialValue = it.amount,
+                    remainingValue = it.amount
                 )
-                sellTransactions.removeIf { transaction ->
-                    transaction.transactionIds.contains(it.transactionId) &&
-                            transaction.currency != DEFAULT_CURRENCY
-                }
+                sellTransactions.remove(transaction)
                 sellTransactions.add(newTransaction)
             }
         }
@@ -314,10 +322,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, val section104: Sectio
         val transactionFeesRounded = BigDecimal(transactionFees)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Transaction fees = £$transactionFeesRounded")
-        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.amount })
+        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.remainingValue })
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Disposal proceeds: £$disposalProceeds")
-        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.amount } + section104.price)
+        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.remainingValue } + section104.price)
             .setScale(2, RoundingMode.HALF_EVEN).toString()
         println("Purchase costs: £$purchaseCosts\n")
     }
