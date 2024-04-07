@@ -25,20 +25,24 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
+        private const val DIVIDEND = "Dividend"
         private const val FX_CREDIT = "FX Credit"
         private const val FX_DEBIT = "FX Debit"
+        private const val TRANSACTION_FEE = "DEGIRO Transaction and/or third party fees"
     }
 
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
     private val fxTransactions = mutableListOf<FXTransaction>()
     private var transactionFees = 0.00
+    private var dividends = 0.00
     private val errorLogger = ErrorLogger()
 
-    private val fxTransactionDescriptions = listOf(
-        "DEGIRO Transaction and/or third party fees",
+    private val validTransactionDescriptions = listOf(
+        DIVIDEND,
         FX_CREDIT,
-        FX_DEBIT
+        FX_DEBIT,
+        TRANSACTION_FEE
     )
 
     init {
@@ -99,15 +103,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
             val transactionDescription = getTransactionDescription(row)
 
-            // TODO: Note foreign currency dividends can't be processed (I don't think)
-            //  Print a warning to the console about dividends in foreign currencies?
-            //  15/09/2023 Dividend functionality should not be enabled at all.
             when (getTransactionType(transactionDescription)) {
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
-                "DEGIRO Transaction and/or third party fees" -> addTransactionFee(row)
+                TRANSACTION_FEE -> addTransactionFee(row)
                 FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
                 FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
+                DIVIDEND -> addDividend(row)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -181,6 +183,15 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
 
         transactionFees += -getColumn8Value(row)
+    }
+
+    private fun addDividend(row: Row) {
+        if (getTransactionCurrency(row) != DEFAULT_CURRENCY) {
+            throw Exception("A dividend for an invalid currency was found on row "
+                    + row.rowNum + ". Currently, only dividends in $DEFAULT_CURRENCY are supported.")
+        }
+
+        dividends += getColumn8Value(row)
     }
 
     private fun getColumn8Value(row: Row): Double {
@@ -342,7 +353,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         return when {
             transactionDescription.startsWith("Sell") -> "Sell"
             transactionDescription.startsWith("Buy ") -> "Buy"
-            fxTransactionDescriptions.contains(transactionDescription) -> transactionDescription
+            validTransactionDescriptions.contains(transactionDescription) -> transactionDescription
             else -> null
         }
     }
