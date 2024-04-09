@@ -8,10 +8,9 @@ import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import util.ErrorLogger
+import util.PrintUtils
 import java.io.File
 import java.io.FileInputStream
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -25,20 +24,24 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
+        private const val DIVIDEND = "Dividend"
         private const val FX_CREDIT = "FX Credit"
         private const val FX_DEBIT = "FX Debit"
+        private const val TRANSACTION_FEE = "DEGIRO Transaction and/or third party fees"
     }
 
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
     private val fxTransactions = mutableListOf<FXTransaction>()
     private var transactionFees = 0.00
+    private var dividends = 0.00
     private val errorLogger = ErrorLogger()
 
-    private val fxTransactionDescriptions = listOf(
-        "DEGIRO Transaction and/or third party fees",
+    private val validTransactionDescriptions = listOf(
+        DIVIDEND,
         FX_CREDIT,
-        FX_DEBIT
+        FX_DEBIT,
+        TRANSACTION_FEE
     )
 
     init {
@@ -47,7 +50,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         val sheet = workbook.getSheetAt(0)
         outputAssetNameAndISIN(sheet)
         addTransactionsToLists(sheet)
-        // TODO: See if these print methods can be delegated to another class
         printReportSummary()
         ProcessTransactions(buyTransactions, sellTransactions, section104)
         finishProcessing()
@@ -99,15 +101,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
             val transactionDescription = getTransactionDescription(row)
 
-            // TODO: Note foreign currency dividends can't be processed (I don't think)
-            //  Print a warning to the console about dividends in foreign currencies?
-            //  15/09/2023 Dividend functionality should not be enabled at all.
             when (getTransactionType(transactionDescription)) {
                 "Buy" -> addBuyTransaction(row, transactionDate)
                 "Sell" -> addSellTransaction(row, transactionDate)
-                "DEGIRO Transaction and/or third party fees" -> addTransactionFee(row)
+                TRANSACTION_FEE -> addTransactionFee(row)
                 FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
                 FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
+                DIVIDEND -> addDividend(row)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -181,6 +181,15 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
 
         transactionFees += -getColumn8Value(row)
+    }
+
+    private fun addDividend(row: Row) {
+        if (getTransactionCurrency(row) != DEFAULT_CURRENCY) {
+            throw Exception("A dividend for an invalid currency was found on row "
+                    + row.rowNum + ". Currently, only dividends in $DEFAULT_CURRENCY are supported.")
+        }
+
+        dividends += getColumn8Value(row)
     }
 
     private fun getColumn8Value(row: Row): Double {
@@ -317,17 +326,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
      * purchase costs, total disposal proceeds and incurred fees.
      */
     private fun printReportSummary() {
-        println("Number of disposals: " + sellTransactions.size)
-        // TODO Delegate this BigDecimal conversion to a utility method
-        val transactionFeesRounded = BigDecimal(transactionFees)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Transaction fees = £$transactionFeesRounded")
-        val disposalProceeds = BigDecimal(sellTransactions.sumOf { it.remainingValue })
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Disposal proceeds: £$disposalProceeds")
-        val purchaseCosts = BigDecimal(buyTransactions.sumOf { it.remainingValue } + section104.price)
-            .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Purchase costs: £$purchaseCosts\n")
+        println("Number of disposals: ${sellTransactions.size}")
+        println("Transaction fees = £${PrintUtils.roundTo2DpString(transactionFees)}")
+        println("Disposal proceeds: £${PrintUtils
+            .roundTo2DpString(sellTransactions.sumOf { it.remainingValue })}")
+        println("Purchase costs: £${PrintUtils
+            .roundTo2DpString(buyTransactions.sumOf { it.remainingValue } + section104.price)}\n")
+        println("Dividends = £${PrintUtils.roundTo2DpString(dividends)}\n")
     }
 
     /**
@@ -342,7 +347,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         return when {
             transactionDescription.startsWith("Sell") -> "Sell"
             transactionDescription.startsWith("Buy ") -> "Buy"
-            fxTransactionDescriptions.contains(transactionDescription) -> transactionDescription
+            validTransactionDescriptions.contains(transactionDescription) -> transactionDescription
             else -> null
         }
     }
