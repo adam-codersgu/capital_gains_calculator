@@ -25,6 +25,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
         private const val DIVIDEND = "Dividend"
+        private const val DIVIDEND_TAX = "Dividend Tax"
         private const val FX_CREDIT = "FX Credit"
         private const val FX_DEBIT = "FX Debit"
         private const val TRANSACTION_FEE = "DEGIRO Transaction and/or third party fees"
@@ -39,6 +40,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private val validTransactionDescriptions = listOf(
         DIVIDEND,
+        DIVIDEND_TAX,
         FX_CREDIT,
         FX_DEBIT,
         TRANSACTION_FEE
