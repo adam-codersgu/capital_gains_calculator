@@ -33,6 +33,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
+    private val foreignDividends = mutableListOf<Transaction>()
+    private val dividendTax = mutableListOf<Transaction>()
     private val fxTransactions = mutableListOf<FXTransaction>()
     private var transactionFees = 0.00
     private var dividends = 0.00
@@ -109,7 +111,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 TRANSACTION_FEE -> addTransactionFee(row)
                 FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
                 FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
-                DIVIDEND -> addDividend(row)
+                DIVIDEND -> addDividend(row, transactionDate)
+                DIVIDEND_TAX -> addDividendTax(row, transactionDate)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -185,13 +188,20 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         transactionFees += -getColumn8Value(row)
     }
 
-    private fun addDividend(row: Row) {
-        if (getTransactionCurrency(row) != DEFAULT_CURRENCY) {
-            throw Exception("A dividend for an invalid currency was found on row "
-                    + row.rowNum + ". Currently, only dividends in $DEFAULT_CURRENCY are supported.")
+    private fun addDividend(row: Row, date: LocalDate) {
+        if (getTransactionCurrency(row) == DEFAULT_CURRENCY) {
+            dividends += getColumn8Value(row)
+        } else {
+            val amount = getColumn8Value(row)
+            foreignDividends.add(buildTransaction(row, date, DIVIDEND, amount))
         }
+    }
 
-        dividends += getColumn8Value(row)
+    // TODO NEED TO TEST WHAT VALUE IS RETURNED FOR EMPTY ORDER ID AS THAT IS WHAT YOU WILL NEED FOR DIVIDEND MATCHING
+
+    private fun addDividendTax(row: Row, date: LocalDate) {
+        val amount = -getColumn8Value(row)
+        dividendTax.add(buildTransaction(row, date, DIVIDEND_TAX, amount))
     }
 
     private fun getColumn8Value(row: Row): Double {
