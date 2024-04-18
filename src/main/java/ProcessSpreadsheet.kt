@@ -344,11 +344,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
     }
 
-    // TODO Need to streamline this method if possible
     private fun mergeFxTransactionsForDividends() {
         if (foreignDividends.isEmpty()) return
-
-        println("Commencing foreign dividend processing.")
 
         for (dividend in foreignDividends) {
             val tax = dividendTaxes.find { tax ->
@@ -356,21 +353,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }
 
             if (tax == null) {
-                println("No dividend tax found for ${dividend.date}")
+                println("No dividend tax found for ${dividend.date}\n")
             } else {
-                val fxCredit = fxTransactions.find { fx ->
-                    fx.type == FX_CREDIT && fx.valueDate == dividend.date && fx.transactionId.isNullOrBlank()
-                }
-                if (fxCredit == null) {
-                    println("No FX Credit found for ${dividend.date}")
-                }
-
-                val fxDebit = fxTransactions.find { fx ->
-                    fx.type == FX_DEBIT && fx.valueDate == dividend.date && fx.transactionId.isNullOrBlank()
-                }
-                if (fxDebit == null) {
-                    println("No FX Debit found for ${dividend.date}")
-                }
+                val fxCredit = getFxTransaction(FX_CREDIT, dividend.date)
+                val fxDebit = getFxTransaction(FX_DEBIT, dividend.date)
 
                 if (dividend.amount - tax.amount != fxDebit?.amount) {
                     println("ERROR: ${dividend.amount} - ${tax.amount} != ${fxDebit?.amount}")
@@ -380,7 +366,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 val proportionTaxed = tax.amount / dividend.amount
                 val dividendInGBP = fxCredit?.amount?.div(1 - proportionTaxed) ?: exitProcess(2)
                 val dividendTaxInGBP = dividendInGBP.minus(fxCredit.amount)
-                println("Dividend GBP: $dividendInGBP. Dividend tax GBP: $dividendTaxInGBP\n")
 
                 foreignDividends.add(dividend.copy(amount = dividendInGBP, currency = DEFAULT_CURRENCY))
                 dividendTaxes.add(tax.copy(amount = dividendTaxInGBP, currency = DEFAULT_CURRENCY))
@@ -398,6 +383,16 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             println("There remain dividend taxes in a foreign currency.")
             exitProcess(2)
         }
+    }
+
+    private fun getFxTransaction(type: String, dividendDate: LocalDate): FXTransaction? {
+        val fxTransaction = fxTransactions.find { fx ->
+            fx.type == type && fx.valueDate == dividendDate && fx.transactionId.isNullOrBlank()
+        }
+        if (fxTransaction == null) {
+            println("No $type found for $dividendDate")
+        }
+        return fxTransaction
     }
 
     /**
