@@ -1,6 +1,7 @@
 
 import constants.ErrorConstants.UNKNOWN_DATE_COLUMN_VALUE
 import constants.ErrorConstants.UNSUPPORTED_DESCRIPTION_COLUMN_VALUE
+import model.DividendTransaction
 import model.FXTransaction
 import model.Section104
 import model.Transaction
@@ -25,6 +26,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     companion object {
         private const val DEFAULT_CURRENCY = "GBP"
         private const val DIVIDEND = "Dividend"
+        private const val DIVIDEND_TAX = "Dividend Tax"
         private const val FX_CREDIT = "FX Credit"
         private const val FX_DEBIT = "FX Debit"
         private const val TRANSACTION_FEE = "DEGIRO Transaction and/or third party fees"
@@ -32,13 +34,17 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private val buyTransactions = mutableListOf<Transaction>()
     private val sellTransactions = mutableListOf<Transaction>()
+    private val foreignDividends = mutableListOf<DividendTransaction>()
+    private val dividendTaxes = mutableListOf<DividendTransaction>()
     private val fxTransactions = mutableListOf<FXTransaction>()
     private var transactionFees = 0.00
     private var dividends = 0.00
     private val errorLogger = ErrorLogger()
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
 
     private val validTransactionDescriptions = listOf(
         DIVIDEND,
+        DIVIDEND_TAX,
         FX_CREDIT,
         FX_DEBIT,
         TRANSACTION_FEE
@@ -89,14 +95,17 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
      * @param sheet an XSSFSheet that contains rows of transactions
      */
     private fun addTransactionsToLists(sheet: XSSFSheet) {
-        val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-
         for (row in sheet) {
             val transactionDate = try {
-                LocalDate.parse(row.getCell(0).stringCellValue, formatter)
+                LocalDate.parse(row.getCell(0).stringCellValue, dateFormatter)
             } catch (_: DateTimeParseException) {
                 errorLogger.rowSkipped(row.rowNum, UNKNOWN_DATE_COLUMN_VALUE)
                 continue
+            } catch (_: NullPointerException) {
+                errorLogger.rowSkipped(row.rowNum, "NullPointerException encountered " +
+                        "when trying to extract the date.\n" +
+                        "Will not process any further rows.\n")
+                break
             }
 
             val transactionDescription = getTransactionDescription(row)
@@ -108,6 +117,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 FX_CREDIT -> addFxCreditTransaction(row, transactionDate)
                 FX_DEBIT -> addFxDebitTransaction(row, transactionDate)
                 DIVIDEND -> addDividend(row)
+                DIVIDEND_TAX -> addDividendTax(row)
                 else -> {
                     errorLogger.rowSkipped(row.rowNum,
                         UNSUPPORTED_DESCRIPTION_COLUMN_VALUE + transactionDescription)
@@ -134,6 +144,8 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         mergeBuyTransactions(buyTransactionsSharingDate)
         val sellTransactionsSharingDate = sellTransactions.groupBy { it.date }.values.filter { it.size > 1 }
         mergeSellTransactions(sellTransactionsSharingDate)
+
+        mergeFxTransactionsForDividends()
     }
 
     private fun getTransactionDescription(row: Row): String = row.getCell(5).stringCellValue
@@ -167,6 +179,11 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             amount, amount, transactionCurrency)
     }
 
+    private fun buildDividendTransaction(row: Row, type: String, amount: Double): DividendTransaction {
+        val date = LocalDate.parse(row.getCell(0).stringCellValue, dateFormatter)
+        return DividendTransaction(date, type, amount, getTransactionCurrency(row))
+    }
+
     /**
      * Add a transaction fee to the running fee total.
      *
@@ -184,12 +201,17 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     }
 
     private fun addDividend(row: Row) {
-        if (getTransactionCurrency(row) != DEFAULT_CURRENCY) {
-            throw Exception("A dividend for an invalid currency was found on row "
-                    + row.rowNum + ". Currently, only dividends in $DEFAULT_CURRENCY are supported.")
+        if (getTransactionCurrency(row) == DEFAULT_CURRENCY) {
+            dividends += getColumn8Value(row)
+        } else {
+            val amount = getColumn8Value(row)
+            foreignDividends.add(buildDividendTransaction(row, DIVIDEND, amount))
         }
+    }
 
-        dividends += getColumn8Value(row)
+    private fun addDividendTax(row: Row) {
+        val amount = -getColumn8Value(row)
+        dividendTaxes.add(buildDividendTransaction(row, DIVIDEND_TAX, amount))
     }
 
     private fun getColumn8Value(row: Row): Double {
@@ -219,9 +241,10 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private fun buildFXTransaction(row: Row, date: LocalDate, type: String, amount: Double): FXTransaction {
         val transactionId = getTransactionId(row)
+        val valueDate = LocalDate.parse(row.getCell(2).stringCellValue, dateFormatter)
         val transactionCurrency = getTransactionCurrency(row)
 
-        return FXTransaction(transactionId, date,
+        return FXTransaction(transactionId, date, valueDate,
             type, amount, transactionCurrency)
     }
 
@@ -321,6 +344,57 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
     }
 
+    private fun mergeFxTransactionsForDividends() {
+        if (foreignDividends.isEmpty()) return
+
+        for (dividend in foreignDividends) {
+            val tax = dividendTaxes.find { tax ->
+                tax.date == dividend.date
+            }
+
+            if (tax == null) {
+                println("No dividend tax found for ${dividend.date}\n")
+            } else {
+                val fxCredit = getFxTransaction(FX_CREDIT, dividend.date)
+                val fxDebit = getFxTransaction(FX_DEBIT, dividend.date)
+
+                if (dividend.amount - tax.amount != fxDebit?.amount) {
+                    println("ERROR: ${dividend.amount} - ${tax.amount} != ${fxDebit?.amount}")
+                    exitProcess(1)
+                }
+
+                val proportionTaxed = tax.amount / dividend.amount
+                val dividendInGBP = fxCredit?.amount?.div(1 - proportionTaxed) ?: exitProcess(2)
+                val dividendTaxInGBP = dividendInGBP.minus(fxCredit.amount)
+
+                foreignDividends.add(dividend.copy(amount = dividendInGBP, currency = DEFAULT_CURRENCY))
+                dividendTaxes.add(tax.copy(amount = dividendTaxInGBP, currency = DEFAULT_CURRENCY))
+                foreignDividends.remove(dividend)
+                dividendTaxes.remove(tax)
+            }
+        }
+
+        if (foreignDividends.any { it.currency != DEFAULT_CURRENCY }) {
+            println("There remain dividends in a foreign currency.")
+            exitProcess(2)
+        }
+
+        if (dividendTaxes.any { it.currency != DEFAULT_CURRENCY }) {
+            println("There remain dividend taxes in a foreign currency.")
+            exitProcess(2)
+        }
+    }
+
+    private fun getFxTransaction(type: String, dividendDate: LocalDate): FXTransaction? {
+        val fxTransaction = fxTransactions.find { fx ->
+            fx.type == type && fx.valueDate == dividendDate && fx.transactionId.isNullOrBlank()
+        }
+        if (fxTransaction == null) {
+            println("No $type found for $dividendDate")
+        }
+        return fxTransaction
+    }
+
     /**
      * Prints information about the report including the total number of disposals, total
      * purchase costs, total disposal proceeds and incurred fees.
@@ -332,7 +406,16 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             .roundTo2DpString(sellTransactions.sumOf { it.remainingValue })}")
         println("Purchase costs: £${PrintUtils
             .roundTo2DpString(buyTransactions.sumOf { it.remainingValue } + section104.price)}\n")
-        println("Dividends = £${PrintUtils.roundTo2DpString(dividends)}\n")
+
+        println("GBP dividends = £${PrintUtils.roundTo2DpString(dividends)}")
+        if (foreignDividends.isNotEmpty()) {
+            println("Foreign dividends converted to GBP = £${PrintUtils
+                .roundTo2DpString(foreignDividends.sumOf { it.amount })}")
+        }
+        if (dividendTaxes.isNotEmpty()) {
+            println("Foreign dividend taxes converted to GBP = £${PrintUtils
+                .roundTo2DpString(dividendTaxes.sumOf { it.amount })}\n")
+        }
     }
 
     /**

@@ -12,7 +12,6 @@ data class Transaction(
     var remainingQuantity: Int,
     val initialValue: Double,
     var remainingValue: Double,
-    // TODO: Note the default currency is assumed to be GBP
     var currency: String = "GBP"
 ) {
     fun getTransactionDateAndIdsMessage(): String {
