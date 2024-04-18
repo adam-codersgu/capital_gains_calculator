@@ -126,9 +126,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             }
         }
 
-        println("Foreign dividends: $foreignDividends") // FIXME
-        println("Dividend taxes: $dividendTaxes") // FIXME
-
         val buyTransactionsSharingId = buyTransactions.groupBy { it.transactionIds }.values.filter { it.size > 1 }
         mergeBuyTransactions(buyTransactionsSharingId)
         val sellTransactionsSharingId = sellTransactions.groupBy { it.transactionIds }.values.filter { it.size > 1 }
@@ -149,9 +146,6 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         mergeSellTransactions(sellTransactionsSharingDate)
 
         mergeFxTransactionsForDividends()
-
-        println("Foreign dividends: $foreignDividends") // FIXME
-        println("Dividend taxes: $dividendTaxes") // FIXME
     }
 
     private fun getTransactionDescription(row: Row): String = row.getCell(5).stringCellValue
@@ -350,6 +344,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
     }
 
+    // TODO Need to streamline this method if possible
     private fun mergeFxTransactionsForDividends() {
         if (foreignDividends.isEmpty()) return
 
@@ -364,14 +359,14 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 println("No dividend tax found for ${dividend.date}")
             } else {
                 val fxCredit = fxTransactions.find { fx ->
-                    fx.type == FX_CREDIT && fx.valueDate == dividend.date
+                    fx.type == FX_CREDIT && fx.valueDate == dividend.date && fx.transactionId.isNullOrBlank()
                 }
                 if (fxCredit == null) {
                     println("No FX Credit found for ${dividend.date}")
                 }
 
                 val fxDebit = fxTransactions.find { fx ->
-                    fx.type == FX_DEBIT && fx.valueDate == dividend.date
+                    fx.type == FX_DEBIT && fx.valueDate == dividend.date && fx.transactionId.isNullOrBlank()
                 }
                 if (fxDebit == null) {
                     println("No FX Debit found for ${dividend.date}")
@@ -385,7 +380,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
                 val proportionTaxed = tax.amount / dividend.amount
                 val dividendInGBP = fxCredit?.amount?.div(1 - proportionTaxed) ?: exitProcess(2)
                 val dividendTaxInGBP = dividendInGBP.minus(fxCredit.amount)
-                println("Dividend GBP: $dividendInGBP. Dividend tax GBP: $dividendTaxInGBP")
+                println("Dividend GBP: $dividendInGBP. Dividend tax GBP: $dividendTaxInGBP\n")
 
                 foreignDividends.add(dividend.copy(amount = dividendInGBP, currency = DEFAULT_CURRENCY))
                 dividendTaxes.add(tax.copy(amount = dividendTaxInGBP, currency = DEFAULT_CURRENCY))
@@ -416,15 +411,15 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
             .roundTo2DpString(sellTransactions.sumOf { it.remainingValue })}")
         println("Purchase costs: £${PrintUtils
             .roundTo2DpString(buyTransactions.sumOf { it.remainingValue } + section104.price)}\n")
-        println("Dividends = £${PrintUtils.roundTo2DpString(dividends)}\n")
 
+        println("GBP dividends = £${PrintUtils.roundTo2DpString(dividends)}")
         if (foreignDividends.isNotEmpty()) {
-            println("Foreign dividends in GBP = £${PrintUtils
+            println("Foreign dividends converted to GBP = £${PrintUtils
                 .roundTo2DpString(foreignDividends.sumOf { it.amount })}")
         }
         if (dividendTaxes.isNotEmpty()) {
-            println("Foreign dividend taxes in GBP = £${PrintUtils
-                .roundTo2DpString(dividendTaxes.sumOf { it.amount })}")
+            println("Foreign dividend taxes converted to GBP = £${PrintUtils
+                .roundTo2DpString(dividendTaxes.sumOf { it.amount })}\n")
         }
     }
 
