@@ -1,7 +1,6 @@
 package exceptions
 
 import model.Transaction
-import kotlin.system.exitProcess
 
 class AcquisitionNotFollowingDisposalException() : Exception() {
 
@@ -13,6 +12,5 @@ class AcquisitionNotFollowingDisposalException() : Exception() {
                 "sell transactions are missing from the input spreadsheet. \n" +
                 "Buy transaction: ${buyTransaction.getTransactionDateAndIdsMessage()}\n " +
                 "Sell transaction: ${sellTransaction.getTransactionDateAndIdsMessage()}")
-        exitProcess(1)
     }
 }
