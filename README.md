@@ -29,7 +29,7 @@ VM: OpenJDK 64-Bit Server VM by JetBrains s.r.o.
 ![Degiro Account Statement](images/degiro_account_statement.png "DEGIRO Account Statement")
 
 4. The transactions must be processed on a stock-by-stock basis. Copy all transactions for a given stock into a separate spreadsheet.
-5. The rows that should be included are those with a description beginning "Buy ..." "Sell ...", "FX Debit", "FX Credit" or "DEGIRO Transaction and/or third party fees". Any other description value will cause that row to be ignored during processing.
+5. The rows that will be processed are those with a description beginning "Buy ..." "Sell ...", "FX Debit", "FX Credit", "DEGIRO Transaction and/or third party fees", "Dividend" or "Dividend Tax".
 
 ![Example Stock Transactions](images/example_stock_transactions.png "Example Stock Transactions")
 

@@ -51,14 +51,19 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     )
 
     init {
-        val file = FileInputStream(File(spreadsheetFileLocation))
-        val workbook = XSSFWorkbook(file)
-        val sheet = workbook.getSheetAt(0)
-        outputAssetNameAndISIN(sheet)
-        addTransactionsToLists(sheet)
-        printReportSummary()
-        ProcessTransactions(buyTransactions, sellTransactions, section104)
-        finishProcessing()
+        try{
+            val file = FileInputStream(File(spreadsheetFileLocation))
+            val workbook = XSSFWorkbook(file)
+            val sheet = workbook.getSheetAt(0)
+            outputAssetNameAndISIN(sheet)
+            addTransactionsToLists(sheet)
+            printReportSummary()
+            ProcessTransactions(buyTransactions, sellTransactions, section104)
+            finishProcessing()
+        } catch (e: Exception) {
+            println("Fatal exception thrown: ${e.message}")
+            exitProcess(1)
+        }
     }
 
     /**
@@ -375,13 +380,11 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
         }
 
         if (foreignDividends.any { it.currency != DEFAULT_CURRENCY }) {
-            println("There remain dividends in a foreign currency.")
-            exitProcess(2)
+            throw Exception("There remain dividends in a foreign currency.")
         }
 
         if (dividendTaxes.any { it.currency != DEFAULT_CURRENCY }) {
-            println("There remain dividend taxes in a foreign currency.")
-            exitProcess(2)
+            throw Exception("There remain dividend taxes in a foreign currency.")
         }
     }
 
