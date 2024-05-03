@@ -51,7 +51,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     )
 
     init {
-        try{
+        try {
             val file = FileInputStream(File(spreadsheetFileLocation))
             val workbook = XSSFWorkbook(file)
             val sheet = workbook.getSheetAt(0)
@@ -157,7 +157,13 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private fun getTransactionCurrency(row: Row): String = row.getCell(7).stringCellValue
 
-    private fun getTransactionId(row: Row): String = row.getCell(11).stringCellValue
+    private fun getTransactionId(row: Row): String? {
+        return try {
+            row.getCell(11).stringCellValue
+        } catch (_: java.lang.NullPointerException) {
+            null
+        }
+    }
 
     private fun addBuyTransaction(row: Row, transactionDate: LocalDate) {
         val transactionType = "Buy"
@@ -175,7 +181,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
 
     private fun buildTransaction(row: Row, date: LocalDate, type: String, amount: Double): Transaction {
         val transactionDescription = getTransactionDescription(row)
-        val transactionId = getTransactionId(row)
+        val transactionId = getTransactionId(row) ?: throw RuntimeException("Not expecting a null transaction ID here.")
         val transactionQuantity = getTransactionQuantity(transactionDescription)
         val transactionCurrency = getTransactionCurrency(row)
 
@@ -352,7 +358,7 @@ class ProcessSpreadsheet(spreadsheetFileLocation: String, private val section104
     private fun mergeFxTransactionsForDividends() {
         if (foreignDividends.isEmpty()) return
 
-        for (dividend in foreignDividends) {
+        for (dividend in foreignDividends.toList()) {
             val tax = dividendTaxes.find { tax ->
                 tax.date == dividend.date
             }
