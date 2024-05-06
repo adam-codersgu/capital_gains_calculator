@@ -22,7 +22,7 @@ VM: OpenJDK 64-Bit Server VM by JetBrains s.r.o.
 
 ## Instructions
 
-1. Log in to your DEGIRO account, then navigate through **Activity** > **Account statement**
+1. Log in to your DEGIRO account, then navigate through **Inbox** > **Account statement**
 2. Modify the start and end dates as desired. **N.B. While the tax year ends on April 5th, you may need to factor in purchases made 30 days after April 5th because of the Bed and Breakfast capital gains rule. For example, if you sell shares in Company A on April 1st then buy shares in Company A on April 10th, the sold shares may be matched with the purchased shares, even if the purchase occurred in the following tax year (so long as the purchase occurs within 30 days after the sale). For more information, research the Bed and Breakfast HMRC capital gains rule.**
 3. Press Export then XLS to download a spreadsheet containing all the transactions in your selected timeframe.
 
