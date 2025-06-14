@@ -46,8 +46,8 @@ class ProcessTransactions(var buyTransactions: List<Transaction>, var sellTransa
         val losses = BigDecimal(outstandingTransactions.totalLoss).setScale(2, RoundingMode.HALF_EVEN).toString()
         val profits = BigDecimal(gains.toDouble() + losses.toDouble())
             .setScale(2, RoundingMode.HALF_EVEN).toString()
-        println("Total gains (excluding fees): £$gains \n" +
-                "Total losses (excluding fees): £$losses \n" +
+        println("Total gains (excluding fees): £$gains\n" +
+                "Total losses (excluding fees): £$losses\n" +
                 "Profit (gains minus losses): £$profits")
     }
 }

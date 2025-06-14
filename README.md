@@ -12,7 +12,7 @@ The accuracy of the application's output cannot be guaranteed, and the developer
 ## Technical specifications
 
 Kotlin v1.8.20
-Java v17.0.2
+Java v17.0.11
 Maven framework build
 
 IntelliJ IDEA 2021.3.3 (Community Edition)

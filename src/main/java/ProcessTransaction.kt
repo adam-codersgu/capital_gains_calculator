@@ -132,6 +132,7 @@ abstract class ProcessTransaction(val outstandingTransactions: OutstandingTransa
         return "and the average unit price of the sold shares was ${sellTransaction.getAverageUnitPrice()} GBP. "
     }
 
+    // TODO - INVESTIGATE BUG HERE WITH EXCEPTION BEING THROWN
     protected fun getUpToDateSellTransactionByTransactionIds(transactionIds: List<String>): Transaction {
         return outstandingTransactions.sellTransactions.find {
             it.transactionIds == transactionIds
